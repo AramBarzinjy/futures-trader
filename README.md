@@ -12,10 +12,21 @@ pip install -r requirements.txt
 Paths resolve relative to the repo root via `ROOT` in each module, or override with
 `export NQ_ROOT=/path/to/nq-research`.
 
-## Rebuild the data
+## Get the data
 
-The raw Databento files are not bundled (≈37MB compressed each). Put your `.zst`
-pulls in `data/`, then:
+Market data is not bundled — it is licensed from Databento and large. With an API
+key the pull is automatic:
+
+```bash
+export DATABENTO_API_KEY=db-...                  # or put it in .env (git-ignored)
+python3 src/databento_fetch.py --cost GC CL ES   # price it first; metadata calls are free
+python3 src/databento_fetch.py GC                # -> data/gc_cont_1m.pkl
+```
+
+This asks for continuous symbology (`GC.v.0`), so Databento applies the volume roll
+and `build_continuous.py` is not needed.
+
+If you already hold `.zst` pulls, the original path still works:
 
 ```bash
 python3 src/zstd_ctypes.py data/glbx-mdp3-*.csv.zst data/raw.csv
@@ -30,10 +41,35 @@ isn't needed.
 ```bash
 python3 src/method.py     # setup counts, entry-depth ladder
 python3 src/filters.py    # prior-day condition + the LVN filter (this is the edge)
-python3 src/portfolio.py  # multi-account campaign economics
+python3 src/portfolio.py  # multi-account campaign economics — needs no bar data
 ```
 
-Expect: 213 setups, geometry alone −0.21R, LVN ≤ 0.25 → +1.34R on 24 trades.
+Expect: 213 setups, geometry alone −0.21R, LVN ≤ 0.25 → +1.34R on 24 trades, and
+from `portfolio.py`, a median 5 months to a first payout on one account at
+$1,188/month.
+
+## Run it on another instrument
+
+`NQ_INSTRUMENT` picks the contract; unset means NQ, which is what every number in
+`CLAUDE.md` was measured on.
+
+```bash
+export NQ_INSTRUMENT=GC
+python3 src/method.py
+python3 src/instruments.py     # the contract spec table
+```
+
+## Tests
+
+```bash
+python3 tests/test_pipeline.py     # no data or API key needed
+```
+
+Plants a setup with known geometry in synthetic gold and crude bars and checks the
+method recovers it — the structure, both fib levels, the direction and the
+micro-denominated P&L. This exists because three size thresholds used to be written
+in NQ points, which on crude rejected every possible setup and reported zero rather
+than failing.
 
 ## Layout
 
@@ -42,16 +78,17 @@ CLAUDE.md          full project context — start here
 PREREGISTRATION.md hypothesis list fixed before searching
 DEVIATIONS.md      every departure from it, including the unflattering ones
 src/               all analysis code (see CLAUDE.md §6 for the map)
+tests/             cross-instrument checks that need no data
 results/           trade lists and sweep outputs. lvn_trades.csv is the key file
 reports/           three self-contained HTML reports — open in a browser
-data/              put .zst pulls here
+data/              market data lands here; git-ignored
 ```
 
 ## The one thing to do next
 
-Get **GC** (gold) 1-minute data and run the method on it. Claude Code has your
-network, so it can fetch directly from Databento with an API key — the previous
-environment could not. Order spec is in `CLAUDE.md` §5.
+Get **GC** (gold) 1-minute data and run the method on it. Everything for that is
+built and tested; it needs only a Databento API key. New accounts get $125 of free
+credits and this pull prices at roughly $8 a symbol, so check with `--cost` first.
 
 ## Standing rules
 

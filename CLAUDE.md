@@ -206,9 +206,17 @@ on all 2,294,779 overlapping bars with **zero mismatches** — the data is verif
 1,451,825 bars, 1,061 sessions, 17 quarterly rolls.
 
 ### What is needed next — THE BLOCKING ITEM
-More instruments. The previous session's container had **no outbound network**, so
-Aram had to pull data himself. **Claude Code on his machine does not have that
-limitation — you can likely fetch directly if he provides a Databento API key.**
+More instruments. **This is now down to one thing: a Databento API key.**
+
+The network limitation is gone — this container reaches `hist.databento.com`, and
+the fetch is mechanised in `databento_fetch.py`. The order spec above is encoded in
+`instruments.py`, so the whole pull is:
+
+```bash
+export DATABENTO_API_KEY=db-...          # or put it in .env, which git ignores
+python3 src/databento_fetch.py --cost GC CL ES   # price it first — free
+python3 src/databento_fetch.py GC                # then pull
+```
 
 Order spec (continuous symbology — smaller files, and the roll is done for you):
 
@@ -218,6 +226,9 @@ Order spec (continuous symbology — smaller files, and the roll is done for you
 - `.v.` = volume roll (matches the hand-built roll rule)
 - Databento gives **$125 free credits** to new accounts; pricing is per-GB, ~$8 per
   symbol for this. Should cost nothing.
+
+`--cost` calls `metadata.get_billable_size` and `metadata.get_cost`, which are not
+billed, so the price is known before any credit is spent.
 
 **Priority: GC first** (gold — completely different driver, so its setups land on
 different days), then CL, then ES. YM and RTY are highly correlated with ES/NQ and
@@ -263,15 +274,36 @@ micros.
 | `filters.py` | Prior-day condition + LVN volume-profile scoring |
 | `reactive.py` | Reactive zone detection (FVG/OB/wick/equal highs) — tested, adds nothing |
 | `portfolio.py` | Multi-account campaign simulation |
+| `instruments.py` | Contract specs: tick, $/pt full and micro, Databento symbol |
+| `databento_fetch.py` | Pull 1-min OHLCV straight from Databento into the continuous pickle |
+| `../tests/test_pipeline.py` | Plants a known setup in synthetic GC/CL bars and checks the method finds it |
 
 Run order for the live work:
 ```bash
-python3 zstd_ctypes.py <file.zst> data/raw.csv
-python3 build_continuous.py     # writes data/mnq_cont_1m.pkl
-python3 method.py               # setup counts + entry-depth ladder
-python3 filters.py              # prior-day and LVN filters
-python3 portfolio.py            # account economics
+python3 src/databento_fetch.py GC      # or the old path: zstd_ctypes.py + build_continuous.py
+export NQ_INSTRUMENT=GC                # unset means NQ, which is what CLAUDE.md measures
+python3 src/method.py                  # setup counts + entry-depth ladder
+python3 src/filters.py                 # prior-day and LVN filters
+python3 src/portfolio.py               # account economics (needs no bar data)
+python3 tests/test_pipeline.py         # cross-instrument sanity check, no data needed
 ```
+
+**`NQ_INSTRUMENT` selects the contract.** Unset it and everything behaves exactly as
+it did when the numbers in section 3 were measured. `method.py` reads the bars from
+`data/<key>_cont_1m.pkl`, falling back to the original `mnq_cont_1m.pkl` for NQ.
+
+### One portability fix made when `instruments.py` was added
+
+Three thresholds were denominated in **NQ points**: minimum leg 10, minimum stop 2,
+and a 10-point volume-profile bin in `filters.py`. Gold ticks in 0.10 and crude in
+0.01, so on those contracts a 10-point floor is 100x to 1000x too large and rejects
+every setup that could ever occur — the run would have reported a confident **zero
+setups** rather than an error. They are now expressed in **ticks** (40, 8 and 40),
+which are the identical values on NQ and sane everywhere else.
+`tests/test_pipeline.py` pins this: it plants a setup with known geometry in
+synthetic GC and CL bars, checks the method recovers A, B, leg, both fib levels, the
+direction and the micro-denominated P&L, and confirms the old floor returned zero on
+crude.
 
 ---
 
@@ -300,7 +332,9 @@ This project stayed honest because of these rules. Keep them.
 ## 8. Open items
 
 1. **Get GC data and run the method on it.** Highest value. Validates the pipeline on a
-   second market and nearly doubles setup frequency.
+   second market and nearly doubles setup frequency. **Blocked only on a Databento API
+   key** — the fetch, the contract specs and the cross-instrument fixes are all in place
+   and tested. The moment the key exists this is three commands.
 2. **Forward-test and log the LVN score at every setup**, including skipped ones. The
    only route from 24 trades to a real sample.
 3. **Reactive zones** — tested and negative as mechanised. If Aram can define what makes

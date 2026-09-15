@@ -41,3 +41,22 @@ signals. For a signal that fires weekly, the same $3,000/month requires roughly 
 the per-trade edge. The bar is therefore computed per hypothesis as
 `trades_per_month × net_points × $2 × contracts ≥ $3,000`. This is a clarification of
 the registered rule rather than a loosening of it.
+
+### 5. Size thresholds re-expressed in ticks when the work went multi-instrument
+
+`method.py` rejected any setup whose leg was under 10 or whose stop was under 2, and
+`filters.py` built the volume profile in 10-wide bins. All three numbers were in NQ
+points. Gold ticks in 0.10 and crude in 0.01, so carried across unchanged the leg
+floor is 100x and 1000x too large and rejects every setup those markets can produce —
+the run returns an empty frame and reports zero setups, which reads like a finding
+rather than a bug.
+
+They are now stated in ticks: 40, 8 and 40. On NQ (tick 0.25) those are exactly 10,
+2 and 10 points, so **no NQ number changes** — verified by asserting the constants
+directly. Nothing else in the entry, stop, target or filter logic was touched.
+
+This is a portability fix, not a result. It was made before any non-NQ data existed,
+so no threshold here was chosen after seeing a result, and the tick counts are
+inherited from NQ rather than fitted. Whether 40 ticks is the right floor *for gold*
+is an open question that only gold data can answer; it is recorded here so that if
+it is ever tuned, the tuning is visible as tuning.

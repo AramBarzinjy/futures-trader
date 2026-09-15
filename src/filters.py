@@ -3,7 +3,7 @@ raw geometry from breakeven-negative into an edge? These are the only two of his
 remaining conditions that can be mechanised without further interpretation."""
 import numpy as np, pandas as pd
 from scipy import stats
-from method import DF, Cfg, setups, trade, report, POINT
+from method import DF, Cfg, setups, trade, report, POINT, TICK, INSTRUMENT
 
 groups = {s: g.sort_values("ts") for s, g in DF.groupby("session", sort=True)}
 keys = sorted(groups)
@@ -11,7 +11,13 @@ ki = {s: i for i, s in enumerate(keys)}
 months = pd.to_datetime(DF.session).dt.to_period("M").nunique()
 
 
-def lvn_score(r, cfg, bin_pts=10.0):
+#: Volume-profile bin width, in ticks. 40 ticks is the 10 NQ points the original
+#: work used; stated in ticks it carries over to gold and crude, where a 10-point
+#: bin would have swallowed the entire profile.
+BIN_TICKS = 40.0
+
+
+def lvn_score(r, cfg, bin_pts=BIN_TICKS * TICK):
     """Volume profile from when price last traded beyond the -stop_k level (looking
     back up to 2 sessions) to the BOS. Returns the entry zone's volume as a fraction
     of the profile's busiest bin. Low = a low volume node."""

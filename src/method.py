@@ -20,17 +20,50 @@ Structure of the setup, as mechanised:
 """
 import os as _os
 ROOT = _os.environ.get("NQ_ROOT", _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+import sys as _sys
 import numpy as np, pandas as pd
 from dataclasses import dataclass
 from scipy import stats
 
-DF = pd.read_pickle(ROOT + "/data/mnq_cont_1m.pkl")
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import instruments as _I
+
+#: Which instrument this run is about. Defaults to NQ, which is what every
+#: number in CLAUDE.md was measured on, so an unset environment reproduces the
+#: original result exactly. Set NQ_INSTRUMENT=GC to run the same method on gold.
+INSTRUMENT = _I.get(_os.environ.get("NQ_INSTRUMENT", "NQ"))
+
+
+def _bars_path(inst):
+    """Prefer the per-instrument pickle; fall back to the original MNQ filename.
+
+    The first pull predates `instruments.py` and landed as `mnq_cont_1m.pkl`.
+    Renaming it would break anyone still holding that file, so NQ looks for the
+    new name first and accepts the old one.
+    """
+    path = _I.bars_path(ROOT, inst.key)
+    if not _os.path.exists(path) and inst.key == "NQ":
+        legacy = ROOT + "/data/mnq_cont_1m.pkl"
+        if _os.path.exists(legacy):
+            return legacy
+    if not _os.path.exists(path):
+        raise SystemExit(
+            f"No 1-minute data for {inst.key} at {path}.\n"
+            f"Fetch it with:  python3 src/databento_fetch.py {inst.key}\n"
+            f"(price it first with --cost; see CLAUDE.md section 5)"
+        )
+    return path
+
+
+DF = pd.read_pickle(_bars_path(INSTRUMENT))
 LON = DF.ts.dt.tz_convert("Europe/London")
 DF = DF.assign(lon_min=(LON.dt.hour * 60 + LON.dt.minute).to_numpy())
 
-POINT = 2.0
-TICK = 0.25
-COMMISSION_RT = 1.20
+# Signals are read off full-size data but sized in micros, so the price grid is
+# the contract's tick and the P&L multiplier is the micro's. See instruments.py.
+POINT = INSTRUMENT.point_micro
+TICK = INSTRUMENT.tick
+COMMISSION_RT = INSTRUMENT.commission_rt
 SPLIT = pd.Timestamp("2025-01-01")
 
 
@@ -48,6 +81,13 @@ class Cfg:
     stop_k: float = 2.5            # stop sits beyond this level
     require_prior: float = 0.0     # 0 = off; else prior day must have traded beyond -k
     contracts: int = 5
+    # Size floors are in TICKS, not points, so they mean the same thing on every
+    # contract. The defaults are the NQ values the original work used (40 ticks =
+    # 10 NQ points, 8 ticks = 2 NQ points), so NQ results are unchanged; on gold
+    # or crude a points-denominated floor would have been off by one to two
+    # orders of magnitude and quietly rejected every setup.
+    min_leg_ticks: float = 40.0
+    min_stop_ticks: float = 8.0
 
 
 def er(c):
@@ -107,7 +147,7 @@ def setups(cfg: Cfg):
         A = h[seg].max() if swept_high else l[seg].min()
         B = lo if swept_high else hi           # BOS is the OPPOSITE side
         leg = abs(B - A)
-        if leg < 10:
+        if leg < cfg.min_leg_ticks * TICK:
             continue
 
         # --- 3. confirm the break of structure ---
@@ -173,7 +213,7 @@ def trade(cfg: Cfg, S: pd.DataFrame):
         stop_px = r.stop                        # pay it on the stop instead
         stop_dist = abs(stop_px - entry_px)
         tgt_dist = abs(r.target - entry_px)
-        if stop_dist < 2 or tgt_dist < stop_dist:
+        if stop_dist < cfg.min_stop_ticks * TICK or tgt_dist < stop_dist:
             continue
 
         res = None
