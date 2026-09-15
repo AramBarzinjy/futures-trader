@@ -32,7 +32,7 @@ arithmetic wall. The way through is many cheap accounts, not one big one.
 
 ---
 
-## 2. Three investigations, three verdicts
+## 2. Four investigations, four verdicts
 
 ### (a) Perera paper — FABRICATED, closed
 *Volume Profile Mean Reversion with Tape Speed Confirmation*, L N H Perera, Jun 2026.
@@ -63,6 +63,20 @@ holdout locked 2025-01-01.
 
 ### (c) Aram's own method — THE LIVE HYPOTHESIS
 The only thing with evidence pointing the right way. Details in §3.
+
+### (d) GC/CL transfer test — INCONCLUSIVE on edge, NEGATIVE on frequency
+Pre-registered in `PREREGISTRATION-MULTI.md` **before the data was pulled**; run once
+with every parameter fixed. Full verdict in §4a. Two separate outcomes:
+
+- **Edge: inconclusive.** Every point estimate landed in the predicted direction
+  (pooled +1.13R, tertiles monotone) but nothing survived Benjamini–Hochberg. Pooled
+  n was **10**, not the projected 48, so realised power was **31%**. This neither
+  confirms nor refutes the NQ result.
+- **Frequency: a clear negative, and it is the decision-relevant one.** GC fires
+  0.04 tradeable setups/month and CL 0.16, against NQ's 0.61. The §4 assumption that
+  each new instrument contributes NQ's rate is **false**.
+
+**Do not re-run this on GC or CL — they are spent.** ES is the untouched reserve.
 
 ---
 
@@ -163,6 +177,10 @@ slightly, because the trailing drawdown is path-dependent on start date.
 
 **The only lever on speed is trade frequency:**
 
+> **Superseded in part — read §4a.** The table below assumes every instrument fires
+> at NQ's 0.61 trades/month. That assumption was tested on GC and CL and **failed**:
+> they deliver 0.04 and 0.16. The rows below are upper bounds, not forecasts.
+
 | Instruments | Trades/mo | Median months to payout | $/month per account |
 |---|---|---|---|
 | 1 (NQ only) | 0.61 | **12** | $198 |
@@ -185,9 +203,71 @@ breakeven at RR 6 is 14.3%, so the *entire* interval is above breakeven):
 | 22% | $310 | 9 |
 | 17% | $136 | 10 |
 
-**Agreed plan:** 3 accounts, staggered one per month, across 8 instruments. ~£70/month
-at full tilt. Scale to 10–20 only after forward trades confirm the edge — scaling on
+**Agreed plan — the "8 instruments" half no longer stands; see §4a.** 3 accounts,
+staggered one per month. The account and staggering logic is unaffected, but the
+8-instrument frequency it assumed is not supported: measured across NQ+GC+CL the
+combined rate is 0.81 trades/month, not 4.88. ~£70/month at full tilt. Scale to 10–20 only after forward trades confirm the edge — scaling on
 8 winning trades buys no extra certainty.
+
+---
+
+## 4a. The GC/CL transfer test — what it did and did not settle
+
+Registered in `PREREGISTRATION-MULTI.md`, committed before the Databento pull. The
+method was applied exactly as specified in §3 — no parameter re-fitted, no threshold
+re-chosen. Deviations in `DEVIATIONS.md`. Reproduce with `src/transfer_test.py`.
+
+### Result
+
+| | setups/mo | filled | tradeable/mo | geometry expR | LVN ≤ 0.25 |
+|---|---|---|---|---|---|
+| NQ (reference) | 4.26 | 49% | **0.61** | −0.21 (n=105) | +1.34 (n=24) |
+| GC | 2.14 | 20% | **0.04** | −0.71 (n=21) | +2.57 (n=2) |
+| CL | 4.68 | 34% | **0.16** | −0.14 (n=79) | +0.76 (n=8) |
+
+Registered endpoints, pooled GC+CL:
+
+| Test | Result | BH crit | |
+|---|---|---|---|
+| Primary — pooled expR > 0 | +1.13R, n=10, t=1.01, p=0.170 | 0.100 | fail |
+| Secondary 1 — tertile trend | z=+1.20, p=0.116 | 0.033 | fail |
+| Secondary 2 — filter beats geometry | +1.32, 95% CI [−0.87, +3.66] | 0.067 | fail |
+
+Tertiles were **monotone in the right order** (emptiest +0.56R, middle −0.15R,
+busiest −1.07R), echoing NQ's shape. Geometry alone was negative on both markets,
+as on NQ. Everything points the same way; nothing reaches significance.
+
+### Why the edge question could not be settled
+
+Pooled n was 10, not 48. Realised power **31%**. At the measured GC+CL rate,
+reaching 80% power would need **~18 years** of data.
+
+**This closes "validate the edge by adding instruments" as a strategy.** It cannot
+work at these frequencies, no matter how many markets are added. Only forward
+trades (§8.2) can grow the sample.
+
+### The frequency finding — this one is solid and it changes the plan
+
+Frequency is a **count**, not an effect estimate, so it does not suffer the power
+problem. The geometry transfers fine — GC and CL produce setups at comparable rates
+to NQ, with median legs of 81 and 61 ticks, well clear of the 40-tick floor. What
+collapses is the **fill rate**: price reaches the −2.0 extension on only 20% of GC
+setups and 34% of CL, against 49% on NQ.
+
+Holding the edge at NQ's distribution — the **optimistic** case, since the edge test
+was inconclusive — and varying only frequency:
+
+| Scenario | trades/mo | median months to 1st payout | $/month |
+|---|---|---|---|
+| NQ only | 0.61 | 12 | $201 |
+| §4 **assumed** 3 instruments | 1.83 | 7 | $719 |
+| **NQ + GC + CL, measured** | **0.81** | **11** | **$275** |
+| §4 **assumed** 5 instruments | 3.05 | 5 | $1,206 |
+
+**Adding gold and crude buys one month, not five.** The §4 tables that scale NQ's
+0.61 across 5, 8 and 12 instruments are unreliable — they assume a per-instrument
+rate that does not hold for the two markets now measured. Treat every
+multi-instrument row in §4 as an upper bound that has failed its first test.
 
 ---
 
@@ -277,6 +357,7 @@ micros.
 | `instruments.py` | Contract specs: tick, $/pt full and micro, Databento symbol |
 | `databento_fetch.py` | Pull 1-min OHLCV straight from Databento into the continuous pickle |
 | `../tests/test_pipeline.py` | Plants a known setup in synthetic GC/CL bars and checks the method finds it |
+| `transfer_test.py` | Investigation (d): the pre-registered GC/CL test, endpoints and BH correction |
 
 Run order for the live work:
 ```bash
@@ -325,18 +406,24 @@ This project stayed honest because of these rules. Keep them.
 6. **n=24 is n=24.** Every number in §3 is in-sample on 24 trades, 8 of them winners.
    No amount of further analysis of these four years changes that. Only forward trades do.
 7. **Don't chase the target.** If the honest answer is "this doesn't reach $3,000/month,"
-   say so. Three investigations produced two clean negatives and that was the value.
+   say so. Four investigations have produced two clean negatives, one inconclusive and
+   one negative-on-frequency, and that was the value.
 
 ---
 
 ## 8. Open items
 
-1. **Get GC data and run the method on it.** Highest value. Validates the pipeline on a
-   second market and nearly doubles setup frequency. **Blocked only on a Databento API
-   key** — the fetch, the contract specs and the cross-instrument fixes are all in place
-   and tested. The moment the key exists this is three commands.
-2. **Forward-test and log the LVN score at every setup**, including skipped ones. The
-   only route from 24 trades to a real sample.
+1. ~~**Get GC data and run the method on it.**~~ **DONE — see §4a.** Edge inconclusive
+   (n=10, 31% power); frequency a clear negative (GC 0.04/mo, CL 0.16/mo vs NQ 0.61).
+   GC and CL are spent as out-of-sample markets. ES is the untouched reserve holdout.
+2. **Forward-test and log the LVN score at every setup**, including skipped ones.
+   **Now the only remaining route.** §4a established that adding instruments cannot
+   validate the edge — 80% power would need ~18 years at the measured rates. Forward
+   trades are the sole way the sample grows. This is the highest-value open item.
+2a. **Re-examine the fill rate.** §4a found the −2.0 extension fills on 49% of NQ
+   setups but only 20% of GC and 34% of CL. Whether the −2.0 entry is too deep on
+   non-index markets is an open question — but note that changing it is a *tuning*
+   decision that would need its own pre-registration and a fresh market (ES) to test on.
 3. **Reactive zones** — tested and negative as mechanised. If Aram can define what makes
    one zone "the most reactive", that is worth one more attempt.
 4. **Ask the firm** whether repeat attempts after a blow-up are unrestricted. Aram has
@@ -349,3 +436,6 @@ This project stayed honest because of these rules. Keep them.
 - The Tape Speed Audit — investigation (a)
 - The Drawdown Ceiling — investigation (b) and the Sharpe 9–13 finding
 - The Low Volume Node — investigation (c), the live hypothesis
+
+Investigation (d), the GC/CL transfer test, has no report yet. Its numbers are in
+§4a, `results/transfer_*.csv`, and reproduce from `src/transfer_test.py`.

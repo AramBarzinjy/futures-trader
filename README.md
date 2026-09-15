@@ -84,11 +84,32 @@ reports/           three self-contained HTML reports — open in a browser
 data/              market data lands here; git-ignored
 ```
 
+## The GC/CL transfer test
+
+Pre-registered in `PREREGISTRATION-MULTI.md` before the data was pulled, run once
+with nothing re-fitted:
+
+```bash
+python3 src/databento_fetch.py GC CL     # ~$10 of Databento credit
+python3 src/transfer_test.py             # the registered endpoints + BH correction
+```
+
+Two outcomes, and they point in different directions — `CLAUDE.md` §4a has the detail:
+
+- **Edge: inconclusive.** Pooled +1.13R with monotone tertiles, every estimate in the
+  predicted direction, but nothing survives Benjamini–Hochberg. Pooled n was 10, not
+  the projected 48, so power was 31%.
+- **Frequency: a clear negative.** GC produces 0.04 tradeable setups/month and CL
+  0.16, against NQ's 0.61. Adding both moves time-to-first-payout from 12 months to
+  11, not to 7 as `CLAUDE.md` §4 assumed.
+
 ## The one thing to do next
 
-Get **GC** (gold) 1-minute data and run the method on it. Everything for that is
-built and tested; it needs only a Databento API key. New accounts get $125 of free
-credits and this pull prices at roughly $8 a symbol, so check with `--cost` first.
+**Forward-test.** §4a closed the alternative: validating the edge by adding
+instruments would need ~18 years of data at the measured rates. Logging every setup
+live — including the ones skipped — is now the only way the sample grows.
+
+ES is deliberately untouched and is the reserve holdout. Do not spend it casually.
 
 ## Standing rules
 

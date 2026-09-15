@@ -60,3 +60,54 @@ so no threshold here was chosen after seeing a result, and the tick counts are
 inherited from NQ rather than fitted. Whether 40 ticks is the right floor *for gold*
 is an open question that only gold data can answer; it is recorded here so that if
 it is ever tuned, the tuning is visible as tuning.
+
+---
+
+# Deviations from PREREGISTRATION-MULTI.md (the GC/CL transfer test)
+
+### 1. The realised sample was 5x smaller than registered, and the test was far weaker than declared
+
+`PREREGISTRATION-MULTI.md` §4 projected ~24 LVN trades per instrument and a pooled
+n of ~48, giving ~85% power against the full NQ effect. The realised pooled n was
+**10** — GC contributed 2 and CL 8 — for **31% power**.
+
+Nothing was changed to produce this; it is what the fixed method did on the new
+data. But it means the registered power table was wrong, and the primary endpoint
+was decided in a regime where a null carries almost no information. The declared
+limit in §4 ("even pooled, the test is underpowered against a halved effect") was
+already conservative and still understated the problem.
+
+The projection failed because it scaled NQ's 0.48 LVN trades/month across markets.
+That scaling is the assumption this work set out to check, so its failure is a
+result rather than an error — but it should have been flagged in §4 as the
+projection's single load-bearing assumption, and it was not.
+
+**Reaching 80% power at the measured GC+CL rate would take ~18 years of data.** The
+"validate the edge by adding instruments" route is therefore closed on power
+grounds, not just on this sample.
+
+### 2. No parameter was changed, and the test is now spent
+
+Every value in `PREREGISTRATION-MULTI.md` §2 was used as registered. The 0.25 LVN
+threshold was not re-fitted, no window was adjusted, and no market was dropped or
+added after seeing a result. The endpoints, the one-sided direction, and the
+Benjamini–Hochberg correction are as registered.
+
+Per §1, GC and CL are now spent as out-of-sample markets. **ES remains untouched**
+and is the reserve holdout.
+
+### 3. A post-hoc diagnostic was run, and is reported as diagnostic
+
+After the endpoints were computed, the setups were re-counted by rejection reason
+to explain the small n (fill rate, and whether a volume profile was computable).
+This was run *after* seeing the primary result, so it is exploratory. It changed no
+parameter and is reported as a mechanism, not a finding. It is the basis for the
+frequency conclusion, which rests on counts rather than on any effect estimate.
+
+### 4. Frequency was measured; the edge was assumed unchanged, which favours the strategy
+
+The portfolio re-run holds the edge distribution at NQ's 24 trades and varies only
+trade frequency. Since the GC/CL edge test was inconclusive, assuming the NQ edge
+transfers intact is the **optimistic** case. The frequency conclusion is therefore
+an upper bound on how well the multi-instrument plan performs, not a central
+estimate.
