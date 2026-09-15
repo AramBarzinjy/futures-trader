@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Market data — large, and licensed from Databento. Not redistributable.
+data/*.zst
+data/*.csv
+data/*.pkl
+data/*.parquet
+
+# Local secrets
+.env

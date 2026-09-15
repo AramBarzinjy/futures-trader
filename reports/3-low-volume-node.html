@@ -1,0 +1,342 @@
+<title>The Low Volume Node</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F5F7; --surface:#FFFFFF; --surface-2:#EDF0F3;
+  --ink:#101720; --ink-2:#3B4753; --muted:#5C6875; --faint:#8A95A1;
+  --rule:#DCE2E8; --rule-strong:#C3CCD5;
+  --claim:#B8862B; --measured:#2B7FA8; --measured-soft:#DEEDF5;
+  --neg:#C2453B; --pos:#2E7D62;
+  --shadow:0 1px 2px rgba(16,23,32,.06),0 8px 24px -12px rgba(16,23,32,.14);
+  --maxw:1080px; --measure:68ch;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0D1218; --surface:#141B23; --surface-2:#1B242E;
+  --ink:#E6EBF0; --ink-2:#C2CCD6; --muted:#8794A3; --faint:#6B7885;
+  --rule:#232D38; --rule-strong:#33404E;
+  --claim:#BE8A2D; --measured:#3690BB; --measured-soft:#12242E;
+  --neg:#D4675C; --pos:#3E9276;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);}}
+:root[data-theme="dark"]{
+  --ground:#0D1218; --surface:#141B23; --surface-2:#1B242E;
+  --ink:#E6EBF0; --ink-2:#C2CCD6; --muted:#8794A3; --faint:#6B7885;
+  --rule:#232D38; --rule-strong:#33404E;
+  --claim:#BE8A2D; --measured:#3690BB; --measured-soft:#12242E;
+  --neg:#D4675C; --pos:#3E9276;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);}
+*{box-sizing:border-box}
+body{background:var(--ground); color:var(--ink);
+  font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.65; margin:0;
+  padding-block:0 72px; padding-left:20px; padding-right:20px; -webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw); margin:0 auto}
+p,li{max-width:var(--measure)}
+h1,h2,h3{font-family:"Zilla Slab",Georgia,serif; text-wrap:balance; margin:0}
+:focus-visible{outline:2px solid var(--measured); outline-offset:3px; border-radius:3px}
+.mast{padding-block:56px 30px; border-bottom:2px solid var(--ink)}
+.kicker{font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:500;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:18px}
+h1{font-size:clamp(2.3rem,6.2vw,3.6rem); font-weight:700; line-height:1.04; letter-spacing:-.018em}
+.dek{font-size:clamp(1.02rem,2.2vw,1.18rem); color:var(--ink-2); margin:18px 0 0; max-width:60ch}
+.facts{display:flex; flex-wrap:wrap; margin-top:30px; border-top:1px solid var(--rule)}
+.fact{flex:1 1 150px; padding:14px 18px 14px 0; border-right:1px solid var(--rule)}
+.fact:last-child{border-right:0}
+.fact dt{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--faint); margin:0 0 5px}
+.fact dd{margin:0; font-family:"IBM Plex Mono",monospace; font-size:15px; font-weight:500;
+  color:var(--ink); font-variant-numeric:tabular-nums}
+.verdict{margin-top:38px; background:var(--surface); border:1px solid var(--rule);
+  border-left:4px solid var(--pos); border-radius:3px; padding:28px 30px; box-shadow:var(--shadow)}
+.verdict h2{font-size:1.45rem; font-weight:600; letter-spacing:-.01em}
+.verdict p{margin:12px 0 0; color:var(--ink-2)}
+.verdict p:first-of-type{color:var(--ink); font-size:1.06rem}
+section{margin-top:64px}
+.sechead{display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--rule-strong);
+  padding-bottom:10px; margin-bottom:26px}
+.sechead .n{font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600;
+  color:var(--measured); letter-spacing:.06em; flex:none}
+.sechead h2{font-size:1.5rem; font-weight:600; letter-spacing:-.012em}
+h3{font-size:1.08rem; font-weight:600; margin:30px 0 8px}
+.eq{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1px;
+  background:var(--rule); border:1px solid var(--rule); border-radius:3px; overflow:hidden; margin:24px 0}
+.eq>div{background:var(--surface); padding:18px 20px}
+.eq .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--faint); margin:0 0 8px}
+.eq .big{font-family:"IBM Plex Mono",monospace; font-size:1.45rem; font-weight:600;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums; margin:0 0 5px; line-height:1.2}
+.eq p{margin:0; font-size:13.5px; color:var(--muted); line-height:1.5; max-width:none}
+.eq .ok .big{color:var(--pos)} .eq .bad .big{color:var(--neg)} .eq .mid .big{color:var(--measured)}
+figure{margin:28px 0 0; background:var(--surface); border:1px solid var(--rule);
+  border-radius:3px; padding:22px 22px 16px; box-shadow:var(--shadow)}
+figure h3{margin:0 0 3px; font-size:1rem; font-weight:600}
+.subhead{font-size:13.5px; color:var(--muted); margin:0 0 16px; max-width:none}
+figcaption{font-size:13px; color:var(--muted); margin-top:14px; padding-top:12px;
+  border-top:1px solid var(--rule); max-width:none}
+.chartbox{position:relative; width:100%}
+svg{display:block; width:100%; height:auto; overflow:visible}
+.tblwrap{overflow-x:auto; margin:22px 0 0; border:1px solid var(--rule); border-radius:3px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:14px; min-width:520px}
+th,td{padding:10px 14px; text-align:right; border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child{text-align:left}
+thead th{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint); font-weight:500;
+  border-bottom:1px solid var(--rule-strong); background:var(--surface-2)}
+tbody td{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; color:var(--ink-2)}
+tbody td:first-child{font-family:"Public Sans",sans-serif; color:var(--ink)}
+tbody tr:last-child td{border-bottom:0}
+td.neg{color:var(--neg)} td.pos{color:var(--pos)}
+tr.hl td{background:var(--measured-soft)}
+.note{border-left:3px solid var(--rule-strong); padding:2px 0 2px 18px; margin:24px 0;
+  color:var(--ink-2); font-size:15px}
+.note strong{color:var(--ink)}
+.flag{border-left-color:var(--claim)} .good{border-left-color:var(--pos)} .bad{border-left-color:var(--neg)}
+ul.clean{list-style:none; padding:0; margin:16px 0 0}
+ul.clean li{position:relative; padding-left:22px; margin-bottom:11px; color:var(--ink-2)}
+ul.clean li::before{content:""; position:absolute; left:2px; top:.62em; width:7px; height:7px;
+  border-radius:50%; background:var(--measured)}
+ol.steps{padding-left:0; list-style:none; counter-reset:s; margin:16px 0 0}
+ol.steps li{counter-increment:s; position:relative; padding-left:34px; margin-bottom:16px; color:var(--ink-2)}
+ol.steps li::before{content:counter(s); position:absolute; left:0; top:1px; width:22px; height:22px;
+  border-radius:50%; background:var(--surface-2); border:1px solid var(--rule-strong); color:var(--ink);
+  font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
+  display:flex; align-items:center; justify-content:center}
+ol.steps li b{color:var(--ink)}
+code{font-family:"IBM Plex Mono",monospace; font-size:.88em; background:var(--surface-2);
+  padding:1.5px 5px; border-radius:3px; color:var(--ink-2)}
+footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); color:var(--faint); font-size:13px}
+footer p{max-width:none}
+@media (max-width:640px){.fact{flex-basis:50%; border-right:0} .mast{padding-block:38px 24px} section{margin-top:48px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="kicker">Method Formalisation · Nasdaq-100 Futures · 14 Sep 2026</p>
+  <h1>The Low Volume Node</h1>
+  <p class="dek">Your method mechanised on four years of real MNQ data. The Asia sweep, the break of structure and the fib extension produce nothing on their own. The low volume node is carrying the entire edge — exactly where you said it was.</p>
+  <dl class="facts">
+    <div class="fact"><dt>Asia sessions</dt><dd>1,059</dd></div>
+    <div class="fact"><dt>Valid setups</dt><dd>213</dd></div>
+    <div class="fact"><dt>Trades resolved</dt><dd>105</dd></div>
+    <div class="fact"><dt>With LVN scored</dt><dd>36</dd></div>
+    <div class="fact"><dt>Median stop</dt><dd>$226</dd></div>
+    <div class="fact"><dt>Median RR</dt><dd>6.1</dd></div>
+  </dl>
+</header>
+
+<div class="verdict">
+  <h2>You were right about which part matters</h2>
+  <p>Mechanised from your description, the setup reproduces your own numbers without being told them: <strong>2.1 setups a month</strong> (you said once every 10–14 days), a <strong>median stop of $226</strong> at five micros (you said $250), and a <strong>median reward-to-risk of 6.1</strong> (you said at least 5). Independent reconstruction landing on all three says the structure is right.</p>
+  <p>Stripped to its geometry — Asia sweep, break of structure, short the −2 extension — it loses money at −0.21R per trade. Add the low volume node requirement and it goes to <strong>+1.34R</strong>, and at the strictest filter <strong>+1.97R with a 42% win rate</strong>. Sorted into equal thirds by how empty the entry zone is, expectancy runs <strong>+2.53R, +0.16R, −1.02R</strong> from emptiest to busiest. That is a dose-response relationship, not a lucky cell.</p>
+  <p>It rests on <strong>36 trades</strong>. That is not enough to call it proven, and section 5 is honest about exactly how not-enough it is. But this is the first thing in three investigations that has looked like a real edge.</p>
+</div>
+
+<!-- ======================================== 1 -->
+<section>
+  <div class="sechead"><span class="n">01</span><h2>How I mechanised it</h2></div>
+
+  <p>Your chart settled the convention I had wrong. Level 1 sits on the origin, level 0 on the breakout, and the negative levels run <em>past</em> the breakout — so −2.5 is two and a half legs beyond the break, not back behind the origin. I had it inverted, and everything I measured before your screenshot was answering a different question.</p>
+
+  <ol class="steps">
+    <li><b>Asia range.</b> 00:00–06:00 London, per your 6am close. Qualifies if the last 30 minutes are directionless — Kaufman efficiency ratio ≤ 0.30, which is your "no sense of direction" made countable.</li>
+    <li><b>The manipulation.</b> First break of the Asia range after the close. The extreme of that sweep becomes the origin, level 1.</li>
+    <li><b>The break of structure.</b> Price must then take out the <em>opposite</em> boundary. That boundary is level 0. Sweep one side, break the other.</li>
+    <li><b>Extensions.</b> leg = |0 − 1|; level −k sits k legs beyond the breakout, running away from the origin.</li>
+    <li><b>The trade.</b> Limit at −2, stop beyond −2.5, target back at level 1. Stop ≈ half a leg, target ≈ three legs — which is where your 6:1 comes from, and why the 7.42 on your screenshot is the same trade.</li>
+  </ol>
+
+  <div class="note">
+    Median leg 54 points, median Asia range 50 points. The half-leg stop lands at <strong>$226</strong> on five micros, which is how your $250 cap and your 5R minimum turn out to be the same constraint wearing two hats.
+  </div>
+</section>
+
+<!-- ======================================== 2 -->
+<section>
+  <div class="sechead"><span class="n">02</span><h2>The geometry alone is worthless</h2></div>
+
+  <p>Before any of your filters, just the structure and the extension level:</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Entry level</th><th>Trades</th><th>Win rate</th><th>Expectancy</th><th>Median RR</th></tr></thead>
+      <tbody id="depth"></tbody>
+    </table>
+  </div>
+
+  <p style="margin-top:22px">Every depth is negative, and deeper is worse. At −2 the win rate is 11.4% against a breakeven of 14.1% at that reward-to-risk — close, but on the wrong side. So the skeleton is not the edge. If the method works, something else is doing the work.</p>
+
+  <h3>The prior-day condition makes it worse</h3>
+  <p>Your rule that price must already have traded beyond −2.5 within the last day:</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Prior-day requirement</th><th>Trades</th><th>Win rate</th><th>Expectancy</th></tr></thead>
+      <tbody id="prior"></tbody>
+    </table>
+  </div>
+
+  <div class="note flag">
+    Requiring the prior day to have reached −2.5 drops expectancy to <strong>−0.84R on 39 trades</strong>, with a 2.6% win rate. As a standalone filter it is actively harmful. My read is that it is not really a filter for you — it is how you <em>locate</em> the volume profile, and it only earns its keep when the node is actually there. Which is the next section.
+  </div>
+</section>
+
+<!-- ======================================== 3 -->
+<section>
+  <div class="sechead"><span class="n">03</span><h2>The node is the edge</h2></div>
+
+  <p>I built the volume profile the way you described — from the last time price traded beyond the −2.5 level, forward to the break — and scored the entry zone by its volume relative to the busiest bin in that profile. A low score means a genuine gap in traded volume: the inefficiency you are trying to enter into.</p>
+
+  <figure>
+    <h3>Expectancy by how empty the entry zone is</h3>
+    <p class="subhead">All 36 scored trades split into equal thirds. No threshold chosen — the tertiles are fixed by construction.</p>
+    <div class="chartbox" id="cb-tert"></div>
+    <figcaption>Monotone across all three. In the busiest third, every single trade lost — a 0% win rate on twelve trades. In the emptiest third, half won at roughly 6:1.</figcaption>
+  </figure>
+
+  <p>Tightening the threshold continuously:</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Entry zone volume</th><th>Trades</th><th>Per month</th><th>Win rate</th><th>Expectancy</th></tr></thead>
+      <tbody id="lvn"></tbody>
+    </table>
+  </div>
+
+  <div class="note good">
+    The win rate climbs 22% → 27% → 30% → 33% → 42% as the node gets emptier, with reward-to-risk held at 6.1 throughout. A relationship that strengthens smoothly as you tighten the condition is what a real mechanism looks like. A spurious one usually appears at a single threshold and vanishes either side of it.
+  </div>
+</section>
+
+<!-- ======================================== 4 -->
+<section>
+  <div class="sechead"><span class="n">04</span><h2>What the statistics actually support</h2></div>
+
+  <p>Two correlation measures on the same 36 trades, and they disagree in a way worth understanding:</p>
+
+  <div class="eq">
+    <div class="mid"><p class="lab">Pearson, log volume vs R</p><p class="big">−0.502</p><p>p = 0.0018. Strongly significant.</p></div>
+    <div class="bad"><p class="lab">Spearman rank correlation</p><p class="big">−0.139</p><p>p = 0.42. Not significant at all.</p></div>
+  </div>
+
+  <p>When Pearson is strong and Spearman is flat, the effect is not a reliable ordering — it is carried by a handful of extreme outcomes. Low-volume zones do not produce <em>consistently</em> better trades; they produce the occasional very large winner.</p>
+
+  <div class="note good">
+    <strong>For most strategies that would be a warning. For yours it is the point.</strong> At 6:1 you do not need reliable ordering — you need the big winners to cluster where you are looking. They do. This is the same fat-tailed shape I found in the Perera audit, except there the exit design threw the tail away and here your design is built to capture it.
+  </div>
+
+  <h3>Year by year, at the 0.25 threshold</h3>
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Year</th><th>Trades</th><th>Expectancy</th></tr></thead>
+      <tbody id="years"></tbody>
+    </table>
+  </div>
+  <p style="margin-top:18px">Positive in three years of four, with 2023 flat. No single year carries it, which is more than either of the previous two investigations could say. But look at the trade counts in that column before taking any comfort from it.</p>
+</section>
+
+<!-- ======================================== 5 -->
+<section>
+  <div class="sechead"><span class="n">05</span><h2>Why this is not yet proven</h2></div>
+
+  <p>I would rather say this plainly than let the numbers above do more work than they can bear.</p>
+
+  <ul class="clean">
+    <li><strong>Thirty-six trades.</strong> The tertiles are twelve each. The 42% win rate is nineteen trades. Any of these could move substantially on a handful of different outcomes.</li>
+    <li><strong>No holdout.</strong> There is no clean out-of-sample test here, because splitting 36 trades leaves nothing on either side. Every number in this report is in-sample.</li>
+    <li><strong>I chose the thresholds after seeing the data.</strong> The tertile split avoids that — it is fixed by construction, and it is the result I would lean on. The 0.15 threshold is fitted and should be discounted.</li>
+    <li><strong>Only 36 of 213 setups could be scored at all.</strong> The profile needs price to have traded beyond −2.5 within three sessions. That is itself a selection, and I cannot rule out that it selects for something other than the node.</li>
+    <li><strong>Your discretionary filters are still untested.</strong> The 1H/4H reactive zones, order blocks and rejection blocks are not in this model. If they add selectivity on top, the real numbers are better than these. If they are where your judgement quietly does the work, they cannot be automated at all.</li>
+  </ul>
+
+  <div class="note bad">
+    <strong>And the income arithmetic still does not reach your target.</strong> At the 0.25 threshold this produces 0.48 trades a month at about $296 net each on five micros — roughly <strong>$142 a month</strong>. A real edge, well shaped for a trailing drawdown, and an order of magnitude short of $3,000. Scaling size does not fix it: the stop is already $226 of your $2,000 buffer.
+  </div>
+</section>
+
+<!-- ======================================== 6 -->
+<section>
+  <div class="sechead"><span class="n">06</span><h2>What I would do next</h2></div>
+
+  <ol class="steps">
+    <li><b>Forward-test it, and log every trade.</b> Thirty-six historical trades cannot be turned into ninety by more analysis of the same four years. They can only be added to. Trade it on the demo account, record the LVN score at entry, and in six months there is something real to test. That is the only path from "promising" to "proven" and there is no shortcut.</li>
+    <li><b>Multiply instruments, not size.</b> This is the honest answer to the income gap. The edge is rare rather than small, so the fix is more chances at the same risk — ES, YM, RTY, CL, GC all have Asia ranges and volume profiles. Five instruments at 0.5 trades a month each is 2.5 trades a month with the stop still at $226. Correlation between the index products will blunt it, so the metals and energy matter more than the extra equity indices.</li>
+    <li><b>Give me the reactive zones.</b> They are the one part of your method still missing, and the part most likely to explain why your live results beat this model. If an order block is definable — a candle's range before a displacement move of some size — I can test whether alignment with the node adds anything. If it turns out not to be definable, that is worth knowing too: it means the edge lives in your judgement and cannot be handed to a bot.</li>
+  </ol>
+
+  <h3>The honest bottom line</h3>
+  <p>Three investigations in, this is the only one where the evidence points the right way. The paper was fabricated, the from-scratch search produced a regime artifact, and your method produced a dose-response relationship on the exact component you said mattered, at a risk profile that actually fits your account. That is a real result and you should take some encouragement from it.</p>
+  <p>It is also 36 trades, and I am not going to dress that up. Trade it forward, log it, and let the sample decide.</p>
+</section>
+
+<footer>
+  <p>MNQ front-month continuous 1-minute bars, Databento GLBX-MDP3, 4 Aug 2022 – 10 Sep 2026. Asia window 00:00–06:00 London. Limit fills require trade-through; stops pay two ticks of slippage; $1.20 round-turn commission per micro; sizing at five micros. Volume profile binned at 10 points, built from the last bar trading beyond the −2.5 level within three sessions.</p>
+  <p style="margin-top:10px">Every figure here is in-sample on 36 trades. A backtest is weaker evidence than live trading. This is research, not financial advice.</p>
+</footer>
+</div>
+
+<script>
+const D = {"funnel":[["Asia sessions",1059],["Consolidated + swept + confirmed BOS",213],["Limit at -2.0 filled and resolved",105],["Volume profile computable",36],["Entry zone is a genuine LVN (<=0.25 x POC)",24]],"depth":[[1.0,157,18.5,-0.08,4.0],[1.5,130,15.4,-0.09,5.1],[2.0,105,11.4,-0.21,6.1],[2.25,99,10.1,-0.26,6.6],[2.5,92,7.6,-0.41,7.1]],"lvn":[[1.01,36,22.2,0.55],[0.5,30,26.7,0.87],[0.35,27,29.6,1.08],[0.25,24,33.3,1.34],[0.15,19,42.1,1.97]],"tert":[["Lowest volume (best LVN)",12,50.0,2.53],["Middle third",12,16.7,0.16],["Highest volume (no LVN)",12,0.0,-1.02]],"years":[[2022,3,1.35],[2023,7,-0.01],[2024,9,0.55],[2025,5,4.66]],"prior":[[0.0,105,11.4,-0.21],[2.0,43,9.3,-0.37],[2.5,39,2.6,-0.84],[3.0,32,3.1,-0.81]]};
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const SVG="http://www.w3.org/2000/svg";
+const el=(t,a)=>{const e=document.createElementNS(SVG,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+
+const put=(id,rows)=>{const tb=document.getElementById(id);rows.forEach(h=>{const tr=document.createElement("tr");tr.innerHTML=h;tb.appendChild(tr);});};
+
+put("depth", D.depth.map(([k,n,w,e,rr])=>
+  `<td>−${k.toFixed(k%1?2:1)}</td><td>${n}</td><td>${w.toFixed(1)}%</td>`+
+  `<td class="neg">${e.toFixed(2)}R</td><td>${rr.toFixed(1)}</td>`));
+
+put("prior", D.prior.map(([k,n,w,e])=>
+  `<td>${k?`beyond −${k.toFixed(1)}`:"none (baseline)"}</td><td>${n}</td>`+
+  `<td>${w.toFixed(1)}%</td><td class="neg">${e.toFixed(2)}R</td>`));
+
+put("lvn", D.lvn.map(([t,n,w,e])=>
+  `<td>${t>1?"any (no filter)":`≤ ${t.toFixed(2)} × POC`}</td><td>${n}</td>`+
+  `<td>${(n/50).toFixed(2)}</td><td>${w.toFixed(1)}%</td>`+
+  `<td class="${e>0?"pos":"neg"}">+${e.toFixed(2)}R</td>`));
+
+put("years", D.years.map(([y,n,e])=>
+  `<td>${y}</td><td>${n}</td><td class="${e>0?"pos":"neg"}">${e>0?"+":""}${e.toFixed(2)}R</td>`));
+
+function tert(){
+  const box=document.getElementById("cb-tert");
+  box.querySelectorAll("svg").forEach(s=>s.remove());
+  const W=880,H=300,ML=190,MR=70,MT=16,MB=42, iw=W-ML-MR, ih=H-MT-MB;
+  const T=D.tert, lo=-1.6, hi=3.0;
+  const sx=v=>ML+iw*(v-lo)/(hi-lo);
+  const bh=Math.min(50, ih/T.length*0.56), gap=ih/T.length;
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Expectancy by entry-zone volume"});
+  [-1,0,1,2,3].forEach(v=>{
+    svg.appendChild(el("line",{x1:sx(v),x2:sx(v),y1:MT,y2:MT+ih,
+      stroke:v===0?css("--rule-strong"):css("--rule"),"stroke-width":v===0?1.5:1}));
+    const t=el("text",{x:sx(v),y:H-20,"text-anchor":"middle",fill:css("--faint"),
+      "font-size":11,"font-family":"IBM Plex Mono, monospace"});
+    t.textContent=(v>0?"+":"")+v+"R"; svg.appendChild(t);
+  });
+  T.forEach(([name,n,win,e],i)=>{
+    const cy=MT+gap*(i+0.5), c=e>=0?css("--pos"):css("--neg");
+    const x0=sx(Math.min(e,0)), x1=sx(Math.max(e,0));
+    svg.appendChild(el("rect",{x:x0,y:cy-bh/2,width:Math.max(x1-x0,2),height:bh,fill:c,rx:3}));
+    const lab=el("text",{x:ML-14,y:cy+1,"text-anchor":"end",fill:css("--ink"),
+      "font-size":13,"font-family":"Public Sans, sans-serif"});
+    lab.textContent=name; svg.appendChild(lab);
+    const sub=el("text",{x:ML-14,y:cy+16,"text-anchor":"end",fill:css("--faint"),
+      "font-size":11,"font-family":"IBM Plex Mono, monospace"});
+    sub.textContent=`n=${n} · win ${win.toFixed(0)}%`; svg.appendChild(sub);
+    const val=el("text",{x:(e>=0?x1+9:x0-9),y:cy+5,"text-anchor":e>=0?"start":"end",
+      fill:c,"font-size":13.5,"font-weight":600,"font-family":"IBM Plex Mono, monospace"});
+    val.textContent=(e>0?"+":"")+e.toFixed(2)+"R"; svg.appendChild(val);
+  });
+  const ax=el("text",{x:ML+iw/2,y:H-4,"text-anchor":"middle",fill:css("--faint"),
+    "font-size":10.5,"font-family":"IBM Plex Mono, monospace","letter-spacing":"0.08em"});
+  ax.textContent="EXPECTANCY PER TRADE"; svg.appendChild(ax);
+  box.appendChild(svg);
+}
+tert();
+addEventListener("resize",()=>{clearTimeout(window._t);window._t=setTimeout(tert,150)});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",tert);
+</script>

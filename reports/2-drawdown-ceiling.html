@@ -1,0 +1,365 @@
+<title>The Drawdown Ceiling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#F3F5F7; --surface:#FFFFFF; --surface-2:#EDF0F3;
+  --ink:#101720; --ink-2:#3B4753; --muted:#5C6875; --faint:#8A95A1;
+  --rule:#DCE2E8; --rule-strong:#C3CCD5;
+  --claim:#B8862B; --measured:#2B7FA8; --measured-soft:#DEEDF5;
+  --neg:#C2453B; --pos:#2E7D62;
+  --shadow:0 1px 2px rgba(16,23,32,.06),0 8px 24px -12px rgba(16,23,32,.14);
+  --maxw:1080px; --measure:68ch;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0D1218; --surface:#141B23; --surface-2:#1B242E;
+    --ink:#E6EBF0; --ink-2:#C2CCD6; --muted:#8794A3; --faint:#6B7885;
+    --rule:#232D38; --rule-strong:#33404E;
+    --claim:#BE8A2D; --measured:#3690BB; --measured-soft:#12242E;
+    --neg:#D4675C; --pos:#3E9276;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1218; --surface:#141B23; --surface-2:#1B242E;
+  --ink:#E6EBF0; --ink-2:#C2CCD6; --muted:#8794A3; --faint:#6B7885;
+  --rule:#232D38; --rule-strong:#33404E;
+  --claim:#BE8A2D; --measured:#3690BB; --measured-soft:#12242E;
+  --neg:#D4675C; --pos:#3E9276;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+body{background:var(--ground); color:var(--ink);
+  font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.65; margin:0;
+  padding-block:0 72px; padding-left:20px; padding-right:20px; -webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw); margin:0 auto}
+p,li{max-width:var(--measure)}
+h1,h2,h3{font-family:"Zilla Slab",Georgia,serif; text-wrap:balance; margin:0}
+:focus-visible{outline:2px solid var(--measured); outline-offset:3px; border-radius:3px}
+
+.mast{padding-block:56px 30px; border-bottom:2px solid var(--ink)}
+.kicker{font-family:"IBM Plex Mono",monospace; font-size:11.5px; font-weight:500;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:18px}
+h1{font-size:clamp(2.3rem,6.2vw,3.6rem); font-weight:700; line-height:1.04; letter-spacing:-.018em}
+.dek{font-size:clamp(1.02rem,2.2vw,1.18rem); color:var(--ink-2); margin:18px 0 0; max-width:60ch}
+.facts{display:flex; flex-wrap:wrap; margin-top:30px; border-top:1px solid var(--rule)}
+.fact{flex:1 1 150px; padding:14px 18px 14px 0; border-right:1px solid var(--rule)}
+.fact:last-child{border-right:0}
+.fact dt{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--faint); margin:0 0 5px}
+.fact dd{margin:0; font-family:"IBM Plex Mono",monospace; font-size:15px; font-weight:500;
+  color:var(--ink); font-variant-numeric:tabular-nums}
+
+.verdict{margin-top:38px; background:var(--surface); border:1px solid var(--rule);
+  border-left:4px solid var(--claim); border-radius:3px; padding:28px 30px; box-shadow:var(--shadow)}
+.verdict h2{font-size:1.45rem; font-weight:600; letter-spacing:-.01em}
+.verdict p{margin:12px 0 0; color:var(--ink-2)}
+.verdict p:first-of-type{color:var(--ink); font-size:1.06rem}
+
+section{margin-top:64px}
+.sechead{display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--rule-strong);
+  padding-bottom:10px; margin-bottom:26px}
+.sechead .n{font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600;
+  color:var(--measured); letter-spacing:.06em; flex:none}
+.sechead h2{font-size:1.5rem; font-weight:600; letter-spacing:-.012em}
+h3{font-size:1.08rem; font-weight:600; margin:30px 0 8px}
+
+.eq{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1px;
+  background:var(--rule); border:1px solid var(--rule); border-radius:3px; overflow:hidden; margin:24px 0}
+.eq>div{background:var(--surface); padding:18px 20px}
+.eq .lab{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--faint); margin:0 0 8px}
+.eq .big{font-family:"IBM Plex Mono",monospace; font-size:1.5rem; font-weight:600;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums; margin:0 0 5px; line-height:1.2}
+.eq p{margin:0; font-size:13.5px; color:var(--muted); line-height:1.5; max-width:none}
+.eq .ok .big{color:var(--pos)} .eq .bad .big{color:var(--neg)} .eq .mid .big{color:var(--measured)}
+
+figure{margin:28px 0 0; background:var(--surface); border:1px solid var(--rule);
+  border-radius:3px; padding:22px 22px 16px; box-shadow:var(--shadow)}
+figure h3{margin:0 0 3px; font-size:1rem; font-weight:600}
+.subhead{font-size:13.5px; color:var(--muted); margin:0 0 16px; max-width:none}
+figcaption{font-size:13px; color:var(--muted); margin-top:14px; padding-top:12px;
+  border-top:1px solid var(--rule); max-width:none}
+.chartbox{position:relative; width:100%}
+svg{display:block; width:100%; height:auto; overflow:visible}
+.legend{display:flex; flex-wrap:wrap; gap:18px; margin-bottom:14px}
+.lg{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2)}
+.lg i{width:18px; height:3px; border-radius:2px; flex:none; display:block}
+.tip{position:absolute; pointer-events:none; opacity:0; transition:opacity .1s;
+  background:var(--surface); border:1px solid var(--rule-strong); border-radius:4px;
+  padding:8px 11px; font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink);
+  box-shadow:var(--shadow); white-space:nowrap; z-index:5; font-variant-numeric:tabular-nums}
+.tip b{display:block; font-weight:600; margin-bottom:4px; color:var(--muted);
+  font-size:10.5px; letter-spacing:.08em; text-transform:uppercase}
+
+.tblwrap{overflow-x:auto; margin:22px 0 0; border:1px solid var(--rule); border-radius:3px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:14px; min-width:540px}
+th,td{padding:10px 14px; text-align:right; border-bottom:1px solid var(--rule)}
+th:first-child,td:first-child{text-align:left}
+thead th{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--faint); font-weight:500;
+  border-bottom:1px solid var(--rule-strong); background:var(--surface-2)}
+tbody td{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; color:var(--ink-2)}
+tbody td:first-child{font-family:"Public Sans",sans-serif; color:var(--ink)}
+tbody tr:last-child td{border-bottom:0}
+td.neg{color:var(--neg)} td.pos{color:var(--pos)}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.06em;
+  padding:2px 7px; border-radius:3px; background:var(--surface-2); color:var(--muted)}
+.tag.p{background:var(--measured-soft); color:var(--measured); font-weight:600}
+
+.note{border-left:3px solid var(--rule-strong); padding:2px 0 2px 18px; margin:24px 0;
+  color:var(--ink-2); font-size:15px}
+.note strong{color:var(--ink)}
+.flag{border-left-color:var(--claim)} .good{border-left-color:var(--pos)} .bad{border-left-color:var(--neg)}
+ul.clean{list-style:none; padding:0; margin:16px 0 0}
+ul.clean li{position:relative; padding-left:22px; margin-bottom:11px; color:var(--ink-2)}
+ul.clean li::before{content:""; position:absolute; left:2px; top:.62em; width:7px; height:7px;
+  border-radius:50%; background:var(--measured)}
+ol.steps{padding-left:0; list-style:none; counter-reset:s; margin:16px 0 0}
+ol.steps li{counter-increment:s; position:relative; padding-left:34px; margin-bottom:16px; color:var(--ink-2)}
+ol.steps li::before{content:counter(s); position:absolute; left:0; top:1px; width:22px; height:22px;
+  border-radius:50%; background:var(--surface-2); border:1px solid var(--rule-strong); color:var(--ink);
+  font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
+  display:flex; align-items:center; justify-content:center}
+ol.steps li b{color:var(--ink)}
+code{font-family:"IBM Plex Mono",monospace; font-size:.88em; background:var(--surface-2);
+  padding:1.5px 5px; border-radius:3px; color:var(--ink-2)}
+footer{margin-top:64px; padding-top:22px; border-top:1px solid var(--rule); color:var(--faint); font-size:13px}
+footer p{max-width:none}
+@media (max-width:640px){.fact{flex-basis:50%; border-right:0} .mast{padding-block:38px 24px} section{margin-top:48px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="kicker">Feasibility Study · Nasdaq-100 Futures · 14 Sep 2026</p>
+  <h1>The Drawdown Ceiling</h1>
+  <p class="dek">I built a strategy from scratch with a pre-registered search. One effect survived multiple-testing correction and earned $2,317 a month on the discovery set. It still cannot be traded on your account — at any position size, including one micro.</p>
+  <dl class="facts">
+    <div class="fact"><dt>Hypotheses</dt><dd>22 pre-registered</dd></div>
+    <div class="fact"><dt>Discovery</dt><dd>601 sessions</dd></div>
+    <div class="fact"><dt>Holdout</dt><dd>427 sessions</dd></div>
+    <div class="fact"><dt>Correction</dt><dd>Benjamini–Hochberg</dd></div>
+    <div class="fact"><dt>Survivors</dt><dd>1 effect</dd></div>
+    <div class="fact"><dt>Replicated</dt><dd>No</dd></div>
+  </dl>
+</header>
+
+<div class="verdict">
+  <h2>The constraint is binding, not the strategy</h2>
+  <p>Your target and your risk limit are inconsistent with each other by roughly a factor of five. Making $3,000 a month while never being $2,000 underwater from your peak requires a Sharpe ratio somewhere around <strong>9 to 13</strong>. The best systematic funds in the world run between 1.5 and 3. This is not a gap that a better strategy closes.</p>
+  <p>The proof is cleaner than the theory. The one effect that survived my search earned $111.79 per trade on the discovery set at a t-statistic of 2.50, positive in all three years — a result I would normally call promising. Sized down to <strong>a single micro contract</strong>, its worst drawdown was still $2,670. Your account fails at $2,000. There is no size at which it fits.</p>
+  <p>And it then failed the holdout anyway, which is the more important lesson about how easily a search like this produces something that looks real.</p>
+</div>
+
+<!-- ============================================ 1 -->
+<section>
+  <div class="sechead"><span class="n">01</span><h2>Why I pre-registered the search</h2></div>
+
+  <p>You asked me to build a profitable strategy. The honest difficulty is that I can always appear to. With four years of minute data and a working engine, searching hard enough guarantees a beautiful equity curve — in the previous audit one configuration out of 238 returned +$15 per trade purely by chance. Search ten thousand and I could hand you a Sharpe of 3 that is entirely noise, and it would look better than the paper we just took apart.</p>
+
+  <p>So before computing anything I wrote down the hypothesis list, the test protocol, the multiple-testing correction and the decision rule, and locked the last twenty months in a holdout. The hypotheses are standard published intraday effects, not indicator combinations — opening gaps, opening-range breaks, overnight-range breaks, prior-day levels, time-of-day drift, extended-move reversion, value-area effects, day-of-week. Sixteen effects, twenty-two directional tests.</p>
+
+  <div class="note flag">
+    <strong>Recorded against myself.</strong> I ran the survey once on a defective feature table — a NaN in the true-range calculation propagated through a rolling mean and silently discarded 564 sessions. I fixed it and re-ran on the full 601. I saw the broken run's output first, so the discovery set is no longer strictly unseen. The hypothesis list was not changed as a result, and the holdout stayed sealed — but you should know the discovery result is slightly weaker evidence than a clean first run would have been.
+  </div>
+</section>
+
+<!-- ============================================ 2 -->
+<section>
+  <div class="sechead"><span class="n">02</span><h2>What survived</h2></div>
+
+  <p>Net of costs, per trade, measured to the session close with errors clustered by session. Mirror hypotheses (fade versus continue) are collapsed — a fade being significantly negative is the same fact as its continuation twin being positive, not a second discovery.</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Effect</th><th>n</th><th>Net pts</th><th>t</th><th>After correction</th></tr></thead>
+      <tbody id="survey"></tbody>
+    </table>
+  </div>
+
+  <p style="margin-top:22px">One coherent finding: <strong>intraday momentum</strong>. The direction of the first RTH hour tends to persist into the close, worth 14.6 points net. The opening-range result is the same effect measured a different way. The Monday bias is a calendar artifact with no mechanism and only 119 observations — and at roughly four trades a month it would need 75 points per trade to reach your target, not 28, so it fails the bar regardless of significance.</p>
+
+  <p>Every classic reversion effect — gap fade, value-area reversion, lunch reversion, extended-move fade — came in at or below zero. That is worth noting on its own: it is the same verdict the Perera audit reached, arrived at independently.</p>
+</section>
+
+<!-- ============================================ 3 -->
+<section>
+  <div class="sechead"><span class="n">03</span><h2>It does not fit the account at any size</h2></div>
+
+  <p>The survey measures a raw edge with no stop. The real question is whether it survives being shaped to fit a $2,000 trailing drawdown. Built as an event-driven strategy — enter at 10:30 in the first hour's direction, 120-point catastrophe stop, hold to the close — the discovery-set result was genuinely good: $111.79 per trade, t = 2.50, positive in all three years, $2,317 a month at five micros.</p>
+
+  <p>Then scale it down until it fits:</p>
+
+  <div class="tblwrap">
+    <table>
+      <thead><tr><th>Micros</th><th>Per trade</th><th>Per month</th><th>Max drawdown</th><th>Fits $2,000?</th></tr></thead>
+      <tbody id="sizing"></tbody>
+    </table>
+  </div>
+
+  <div class="note bad">
+    <strong>One micro — the smallest position the market offers — still draws down $2,670.</strong> You cannot trade a fifth of a micro. This strategy is not too aggressive for your account; it is categorically incompatible with it, and so is anything else with a comparable profit-to-drawdown ratio.
+  </div>
+
+  <h3>The arithmetic behind that</h3>
+  <p>The strategy's monthly profit is about 0.23 times its maximum drawdown. That ratio is a property of the edge, and position size does not change it — scaling down divides profit and drawdown equally. To earn $3,000 a month at that ratio you need roughly $13,000 of drawdown room. You have $2,000.</p>
+  <p>Put the other way: a $2,000 trailing limit absorbs about four to six losing trades. To clear $3,000 in a month your winners must cover the target <em>and</em> every loss along the way, with the peak-to-trough path never exceeding $2,000. That is a demand on the shape of the equity curve, not on its average — which is why it translates into a Sharpe requirement rather than a return requirement.</p>
+</section>
+
+<!-- ============================================ 4 -->
+<section>
+  <div class="sechead"><span class="n">04</span><h2>And it failed the holdout</h2></div>
+
+  <p>The configuration was fixed on the discovery set, then run once on the twenty months I had never looked at. This is the test that separates a finding from a fitted result.</p>
+
+  <div class="eq">
+    <div class="mid"><p class="lab">Discovery · 601 sessions</p><p class="big">+$111.79</p><p>per trade · t = 2.50 · positive in 3 of 3 years</p></div>
+    <div class="bad"><p class="lab">Holdout · 427 sessions</p><p class="big">−$8.81</p><p>per trade · t = −0.14 · indistinguishable from zero</p></div>
+  </div>
+
+  <figure>
+    <h3>Cumulative profit, discovery versus holdout</h3>
+    <p class="subhead">Same rules, same instrument, 5 micros. The holdout begins where the discovery set ends.</p>
+    <div class="legend">
+      <span class="lg"><i style="background:var(--measured)"></i>Discovery (2022-08 → 2024-12)</span>
+      <span class="lg"><i style="background:var(--neg)"></i>Holdout (2025-01 → 2026-09)</span>
+    </div>
+    <div class="chartbox" id="cb-eq"><div class="tip" id="tip-eq"></div></div>
+    <figcaption>Intraday momentum was present through the 2022–24 trending period and absent afterwards. Checking the whole stop ladder on the holdout finds nothing coherent either — t-statistics scattered between −0.61 and +0.34.</figcaption>
+  </figure>
+
+  <div class="note">
+    This is the outcome I pre-registered as most likely, and reporting it is the point of having written that down. A discovery-set t of 2.50 across 601 trades and three positive years is exactly what a regime artifact looks like from the inside. Had I skipped the holdout, I would be handing you a strategy right now.
+  </div>
+</section>
+
+<!-- ============================================ 5 -->
+<section>
+  <div class="sechead"><span class="n">05</span><h2>What actually follows from this</h2></div>
+
+  <p>Two findings are worth acting on, and one target needs changing.</p>
+
+  <ol class="steps">
+    <li><b>The monthly income target is the wrong objective.</b> Your evaluations last one month and the plan is to pass, then scale across accounts. That makes your real metric <em>pass probability per evaluation</em>, not $3,000 every month. Those are different problems: hitting $3,000 once, from a standing start, with a fresh $2,000 buffer, is far more tractable than doing it repeatedly. Optimising for pass rate also tells you what an evaluation fee is worth paying.</li>
+    <li><b>Your method's shape is the only shape that fits.</b> A $2,000 trailing limit punishes frequency — every trade is another chance to bleed, and variance accumulates with the square root of trade count. Rare setups with a tight stop and large winners is the structure that minimises exposure to that. Two or three trades a month at $300–400 risk gives you six chances to be wrong; a daily strategy gives you twenty-one. Your instinct here is right and the systematic daily stuff I just tested is structurally wrong for this account.</li>
+    <li><b>Consider whether the account is the binding problem.</b> Your firm offers no static-drawdown option, and the trailing rule is what makes this arithmetic so hostile — it ratchets upward on unrealised profit, so a trade that goes well and then reverses can end you without a losing close. A static drawdown, or a larger account at the same dollar target, changes the feasibility calculation more than any strategy refinement will.</li>
+  </ol>
+
+  <h3>Where I would spend the next round</h3>
+  <p>Not on more searching. Twenty-two pre-registered hypotheses is a reasonable sweep of the published intraday effects in this market, and the honest yield was one regime artifact. Grinding through another hundred indicator combinations would produce something that backtests well and means nothing — the search itself is what manufactures those.</p>
+  <p>The better use of effort is your own method, for the reason in point two: its structure fits the constraint, and it is the one hypothesis here that hasn't been tested. Send me the rules — what defines the Asia consolidation, what counts as manipulation, which fib levels off which swing, how you select the LVN, where the stop sits, how you exit, and what makes you pass on a setup that otherwise qualifies. I will formalise it, hold out the same twenty months, and tell you honestly what it does.</p>
+</section>
+
+<footer>
+  <p>Survey pre-registration and recorded deviations ship with the code. MNQ front-month continuous 1-minute bars from Databento GLBX-MDP3, 4 Aug 2022 – 10 Sep 2026. Costs of 1.2 index points round trip (1 tick entry slippage, 2 ticks on stops, $1.20 commission per micro). Errors clustered by session; Benjamini–Hochberg at FDR 0.10.</p>
+  <p style="margin-top:10px">A backtest is weaker evidence than live trading, and a holdout tested once is weaker evidence than a forward test. This is research, not financial advice.</p>
+</footer>
+</div>
+
+<script>
+const D = {"disc":{"y":[-528,3400,61,3486,2668,3406,9399,9714,8296,10682,8747,11458,13029,11582,14128,14910,15777,16660,19196,17076,15420,16596,16028,14986,17510,19498,21539,18257,16376,14642,18520,18218,18982,17017,12342,13036,17460,14882,18316,18894,18215,20076,23021,28822,26440,27066,28712,32450,32676,32262,35324,32404,31639,30587,30328,32094,28897,26405,28060,27724,24735,26208,25987,32068,34248,33531,35315,37263,37888,39162,38970,41941,46146,45350,53784,61032,66217,68200,66209,62717,61078,61263,62680,65030,65433,66614,64740,69158,66496,67186],"x":["2022-08-18","2022-08-26","2022-09-06","2022-09-16","2022-09-26","2022-10-05","2022-10-14","2022-10-25","2022-11-02","2022-11-11","2022-11-22","2022-12-01","2022-12-09","2022-12-21","2023-01-03","2023-01-12","2023-01-20","2023-01-31","2023-02-09","2023-02-20","2023-02-28","2023-03-09","2023-03-21","2023-03-30","2023-04-11","2023-04-20","2023-05-01","2023-05-10","2023-05-18","2023-05-29","2023-06-07","2023-06-16","2023-06-27","2023-07-06","2023-07-17","2023-07-25","2023-08-03","2023-08-14","2023-08-23","2023-08-31","2023-09-11","2023-09-21","2023-10-02","2023-10-10","2023-10-19","2023-10-30","2023-11-08","2023-11-16","2023-11-27","2023-12-06","2023-12-18","2023-12-27","2024-01-08","2024-01-17","2024-01-26","2024-02-05","2024-02-14","2024-02-23","2024-03-05","2024-03-14","2024-03-25","2024-04-04","2024-04-12","2024-04-23","2024-05-02","2024-05-13","2024-05-21","2024-05-30","2024-06-10","2024-06-20","2024-06-28","2024-07-09","2024-07-18","2024-07-29","2024-08-06","2024-08-15","2024-08-26","2024-09-04","2024-09-12","2024-09-24","2024-10-03","2024-10-14","2024-10-22","2024-10-31","2024-11-11","2024-11-20","2024-11-28","2024-12-09","2024-12-19","2024-12-31"]},"hold":{"y":[886,2238,895,1940,-568,3388,5954,4244,8481,8891,8317,13797,16810,16832,14144,13153,13788,16023,14020,14092,11576,12186,14919,10832,8068,9128,9128,9378,7665,7168,6538,11218,15124,16097,15274,15584,13832,14252,15133,13556,13950,13918,11113,12256,13032,12674,14054,9210,8038,10020,7468,8792,10574,9091,9001,9664,5811,4100,8962,11367,8334,9273,8648,6443,8068,2013,5122,4069,7576,3852,466,4128,318,1535,-555,4761,11966,14776,10616,11224,9352,8020,2684,-3370,1717,3150,3003,-260,-2852,-3762],"x":["2025-01-02","2025-01-08","2025-01-17","2025-01-24","2025-01-31","2025-02-06","2025-02-13","2025-02-20","2025-02-27","2025-03-06","2025-03-12","2025-03-20","2025-03-27","2025-04-03","2025-04-10","2025-04-16","2025-04-24","2025-05-01","2025-05-08","2025-05-14","2025-05-21","2025-05-28","2025-06-04","2025-06-11","2025-06-18","2025-06-25","2025-07-02","2025-07-09","2025-07-16","2025-07-22","2025-07-29","2025-08-05","2025-08-12","2025-08-18","2025-08-25","2025-09-01","2025-09-08","2025-09-15","2025-09-22","2025-09-29","2025-10-06","2025-10-13","2025-10-20","2025-10-24","2025-10-31","2025-11-07","2025-11-14","2025-11-20","2025-11-27","2025-12-04","2025-12-11","2025-12-19","2025-12-26","2026-01-05","2026-01-12","2026-01-19","2026-01-26","2026-01-30","2026-02-06","2026-02-13","2026-02-20","2026-02-26","2026-03-05","2026-03-12","2026-03-20","2026-03-27","2026-04-02","2026-04-13","2026-04-20","2026-04-27","2026-05-04","2026-05-08","2026-05-15","2026-05-22","2026-05-29","2026-06-04","2026-06-11","2026-06-19","2026-06-26","2026-07-03","2026-07-09","2026-07-16","2026-07-23","2026-07-30","2026-08-06","2026-08-12","2026-08-19","2026-08-26","2026-09-02","2026-09-09"]},"sizing":[[1,22.36,463,-2670],[2,44.72,927,-5341],[3,67.07,1390,-8011],[5,111.79,2317,-13352],[6,134.15,2780,-16022],[10,223.58,4634,-26704]],"survey":[["Intraday momentum (first hour -> close)",600,14.59,2.96,"PASS"],["Opening-range break continuation",598,10.87,2.09,"PASS*"],["Monday long bias",119,28.11,2.62,"PASS"],["Globex range break continuation",583,6.34,1.06,"-"],["Lunch reversion",578,-2.89,-0.86,"-"],["Extended-move fade (0.5xATR)",120,-11.22,-0.98,"-"],["Prior-day high/low break continuation",525,4.54,0.71,"-"],["Value-area reversion",337,-1.99,-0.22,"-"],["Opening gap fade",289,-2.05,-0.21,"-"],["Inside-value breakout",264,-3.17,-0.4,"-"]]};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const SVG="http://www.w3.org/2000/svg";
+const el=(t,a)=>{const e=document.createElementNS(SVG,t); for(const k in a) e.setAttribute(k,a[k]); return e;};
+const fmt$=v=>(v<0?"−$":"$")+Math.abs(Math.round(v)).toLocaleString();
+
+/* survey table */
+(function(){
+  const tb=document.getElementById("survey");
+  D.survey.forEach(([name,n,pts,t,tag])=>{
+    const tr=document.createElement("tr");
+    const cls=pts>0?"pos":"neg";
+    const badge = tag==="-" ? '<span class="tag">not significant</span>'
+      : (tag==="PASS" ? '<span class="tag p">survives</span>'
+                      : '<span class="tag p">survives (collapsed)</span>');
+    tr.innerHTML=`<td>${name}</td><td>${n}</td><td class="${cls}">${pts>0?"+":""}${pts.toFixed(2)}</td><td>${t.toFixed(2)}</td><td>${badge}</td>`;
+    tb.appendChild(tr);
+  });
+})();
+
+/* sizing table */
+(function(){
+  const tb=document.getElementById("sizing");
+  D.sizing.forEach(([n,exp,mo,dd])=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${n} micro${n>1?"s":""}</td><td>$${exp.toFixed(2)}</td><td>${fmt$(mo)}</td>`
+      +`<td class="neg">${fmt$(dd)}</td><td class="neg">no</td>`;
+    tb.appendChild(tr);
+  });
+})();
+
+/* equity chart */
+function equity(){
+  const box=document.getElementById("cb-eq"), tip=document.getElementById("tip-eq");
+  box.querySelectorAll("svg").forEach(s=>s.remove());
+  const W=880,H=330,ML=68,MR=78,MT=16,MB=34, iw=W-ML-MR, ih=H-MT-MB;
+  const A=D.disc.y, B=D.hold.y, XA=D.disc.x, XB=D.hold.x;
+  const nA=A.length, nB=B.length, N=nA+nB;
+  const all=A.concat(B.map(v=>v+A[nA-1]));
+  const lo=-10000, hi=75000;
+  const sx=i=>ML+iw*i/(N-1), sy=v=>MT+ih*(1-(v-lo)/(hi-lo));
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Cumulative profit, discovery versus holdout"});
+
+  [-10000,0,20000,40000,60000].forEach(v=>{
+    svg.appendChild(el("line",{x1:ML,x2:ML+iw,y1:sy(v),y2:sy(v),
+      stroke:v===0?css("--rule-strong"):css("--rule"),"stroke-width":v===0?1.5:1}));
+    const t=el("text",{x:ML-10,y:sy(v)+4,"text-anchor":"end",fill:css("--faint"),
+      "font-size":11,"font-family":"IBM Plex Mono, monospace"});
+    t.textContent=(v<0?"−$":"$")+Math.abs(v/1000)+"k"; svg.appendChild(t);
+  });
+
+  // split marker
+  svg.appendChild(el("line",{x1:sx(nA-1),x2:sx(nA-1),y1:MT,y2:MT+ih,
+    stroke:css("--rule-strong"),"stroke-width":1,"stroke-dasharray":"4 3"}));
+  const sl=el("text",{x:sx(nA-1)-8,y:MT+12,"text-anchor":"end",fill:css("--faint"),
+    "font-size":10.5,"font-family":"IBM Plex Mono, monospace","letter-spacing":"0.06em"});
+  sl.textContent="HOLDOUT BEGINS"; svg.appendChild(sl);
+
+  const pathOf=(arr,off)=>arr.map((v,i)=>((i?"L":"M")+sx(i+off).toFixed(1)+" "+sy(v).toFixed(1))).join(" ");
+  svg.appendChild(el("path",{d:pathOf(A,0),fill:"none",stroke:css("--measured"),
+    "stroke-width":2.2,"stroke-linejoin":"round","stroke-linecap":"round"}));
+  svg.appendChild(el("path",{d:pathOf(B.map(v=>v+A[nA-1]),nA),fill:"none",stroke:css("--neg"),
+    "stroke-width":2.2,"stroke-linejoin":"round","stroke-linecap":"round"}));
+
+  [[nA-1,A[nA-1],css("--measured"),fmt$(A[nA-1])],
+   [N-1,B[nB-1]+A[nA-1],css("--neg"),fmt$(B[nB-1])+" "]].forEach(([i,v,c,lab],k)=>{
+    svg.appendChild(el("circle",{cx:sx(i),cy:sy(v),r:4,fill:c,stroke:css("--surface"),"stroke-width":2}));
+    const t=el("text",{x:sx(i)+9,y:sy(v)+(k?14:-8),fill:c,"font-size":12.5,"font-weight":600,
+      "font-family":"IBM Plex Mono, monospace","text-anchor":k?"end":"start"});
+    t.textContent=lab; svg.appendChild(t);
+  });
+
+  [0,Math.floor(nA/2),nA,Math.floor(nA+nB/2),N-1].forEach(i=>{
+    const lbl=i<nA?XA[i]:XB[Math.min(i-nA,nB-1)];
+    const t=el("text",{x:sx(i),y:H-12,"text-anchor":i===0?"start":(i===N-1?"end":"middle"),
+      fill:css("--faint"),"font-size":11,"font-family":"IBM Plex Mono, monospace"});
+    t.textContent=lbl.slice(0,7); svg.appendChild(t);
+  });
+
+  const cross=el("line",{x1:0,x2:0,y1:MT,y2:MT+ih,stroke:css("--rule-strong"),"stroke-width":1,opacity:0});
+  svg.appendChild(cross);
+  const hit=el("rect",{x:ML,y:MT,width:iw,height:ih,fill:"transparent"}); svg.appendChild(hit);
+  hit.addEventListener("pointermove",e=>{
+    const r=svg.getBoundingClientRect();
+    const i=Math.max(0,Math.min(N-1,Math.round(((e.clientX-r.left)/r.width*W-ML)/iw*(N-1))));
+    cross.setAttribute("x1",sx(i)); cross.setAttribute("x2",sx(i)); cross.setAttribute("opacity",1);
+    const inA=i<nA, lbl=inA?XA[i]:XB[Math.min(i-nA,nB-1)];
+    const val=inA?A[i]:B[Math.min(i-nA,nB-1)];
+    tip.innerHTML=`<b>${lbl} · ${inA?"discovery":"holdout"}</b>${fmt$(val)}`;
+    tip.style.opacity=1;
+    const px=sx(i)/W*r.width;
+    tip.style.left=Math.min(Math.max(px-70,0),r.width-165)+"px"; tip.style.top="8px";
+  });
+  hit.addEventListener("pointerleave",()=>{cross.setAttribute("opacity",0); tip.style.opacity=0;});
+  box.appendChild(svg);
+}
+equity();
+addEventListener("resize",()=>{clearTimeout(window._t);window._t=setTimeout(equity,150)});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",equity);
+</script>
