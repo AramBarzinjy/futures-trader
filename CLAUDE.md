@@ -271,6 +271,66 @@ multi-instrument row in §4 as an upper bound that has failed its first test.
 
 ---
 
+## 4b. Position size and the 40% consistency rule
+
+Reproduce with `src/constraints.py`. Neither of these was modelled in
+`portfolio.py`, and the second one dominates everything else in the project.
+
+### Size has an interior optimum, and it moves with frequency
+
+Too small and the trailing drawdown grinds the account out before it reaches the
+buffer; too large and variance kills it. At the **measured** 0.81 trades/month:
+
+| micros | median months | P(payout ≤ 2mo) | account dies |
+|---|---|---|---|
+| 12 (current plan) | 11 | 2.7% | 28% |
+| **20** | **8** | **7.8%** | **15%** |
+| 30 | 9 | 6.5% | 27% |
+| 60 (the cap) | 10 | 4.9% | 41% |
+
+20 micros beats the current 12 on **all three** axes at once. At the assumed
+8-instrument rate the optimum moves back down to 12 — low frequency needs size to
+outrun the trailing drawdown, high frequency does not.
+
+**Do not act on this yet.** See below.
+
+### The 40% consistency rule may make the whole plan infeasible
+
+`CLAUDE.md` §1 lists a 40% consistency rule and nothing in the project ever
+modelled it. A 6RR strategy at a 33% win rate earns nearly everything on a few
+days, which is exactly what such a rule forbids.
+
+The funded leg needs $3,600. The median winning trade at 12 micros is **$3,329**
+— one day carrying 92% of the profit. At 20 micros a single win is 148% of the
+whole requirement.
+
+The only escape is to keep trading past the minimum until the best day is diluted
+below 40%. That means accumulating this much inside a $2,000 trailing drawdown:
+
+| micros | months without the rule | with the rule | profit needed | **account dies** |
+|---|---|---|---|---|
+| 12 | 7 | 12 | $12,300 | **82%** |
+| 20 | 4 | 8 | $18,830 | **93%** |
+| 30 | 3 | 6 | $28,112 | **98%** |
+
+Even at the assumed 8-instrument rate, **84%** of accounts die before a first
+payout. This is the same arithmetic wall as §1, arriving from a different
+direction: the rule demands many similar-sized winning days, and a 6RR strategy
+structurally cannot produce them.
+
+### The interpretation is assumed, and that is the whole question
+
+The model assumes "largest winning day ≤ 40% of accumulated profit, checked at
+payout". Firms word this differently — evaluation-phase only, first-payout only,
+gross rather than net. **Under a looser reading the plan is merely slow; under
+this one it is broken.**
+
+This makes §8.4 (ask the firm) the highest-leverage open item in the project. It
+is a free question with a decisive answer, and **no sizing decision should be made
+before it is answered.**
+
+---
+
 ## 5. Data
 
 ### What exists
@@ -358,6 +418,7 @@ micros.
 | `databento_fetch.py` | Pull 1-min OHLCV straight from Databento into the continuous pickle |
 | `../tests/test_pipeline.py` | Plants a known setup in synthetic GC/CL bars and checks the method finds it |
 | `transfer_test.py` | Investigation (d): the pre-registered GC/CL test, endpoints and BH correction |
+| `constraints.py` | Optimal position size, and the 40% consistency rule that `portfolio.py` omits |
 
 Run order for the live work:
 ```bash
@@ -426,8 +487,13 @@ This project stayed honest because of these rules. Keep them.
    decision that would need its own pre-registration and a fresh market (ES) to test on.
 3. **Reactive zones** — tested and negative as mechanised. If Aram can define what makes
    one zone "the most reactive", that is worth one more attempt.
-4. **Ask the firm** whether repeat attempts after a blow-up are unrestricted. Aram has
-   confirmed unlimited concurrent purchases; re-attempt policy was never confirmed.
+4. **ASK THE FIRM — now the highest-leverage item in the project.** Two questions:
+   - **How exactly is the 40% consistency rule applied?** Evaluation only, or every
+     payout? Largest *day* or largest *trade*? Against net or gross profit? §4b shows
+     the plan is broken under a strict reading and merely slow under a loose one.
+     Nothing else should be decided until this is answered.
+   - Whether repeat attempts after a blow-up are unrestricted. Unlimited concurrent
+     purchases are confirmed; re-attempt policy was never confirmed.
 5. **Second TP / partial exits** — Aram mentioned experimenting with multiple take-profits.
    Never tested.
 
