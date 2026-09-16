@@ -111,3 +111,53 @@ trade frequency. Since the GC/CL edge test was inconclusive, assuming the NQ edg
 transfers intact is the **optimistic** case. The frequency conclusion is therefore
 an upper bound on how well the multi-instrument plan performs, not a central
 estimate.
+
+
+---
+
+# Deviations from PREREGISTRATION-FIB.md (the −0.618 entry test on ES)
+
+### 1. ES yielded 22 LVN trades, not the 50–70 projected
+
+§5 projected 50–70 by scaling NQ's rate. ES gave **22** at −0.618 and 8 at −2.0, so
+Secondary 1 ran at roughly 45% power rather than 85%. This is the second time a
+projection scaled from NQ has over-estimated another market's trade count by 2–3×
+(the first is recorded above for GC/CL), and the pattern should be assumed from now
+on: **NQ produces more tradeable setups than any other market tested.**
+
+22 clears the 20-trade floor §5 declared, so the test stands rather than being voided
+— but the primary (a difference-of-rates test, explicitly weaker) was underpowered
+and its failure is correspondingly weak evidence. Secondary 1's failure is the more
+informative of the two.
+
+### 2. Nothing was tuned, and ES is now spent
+
+The parameters in §2 were used exactly as registered. The verdict follows §6's
+decision rule mechanically: both substantive endpoints failed, so the entry stays at
+−2.0 and the sweep is recorded as having produced nothing.
+
+ES was the last unexamined market. There is no reserve left.
+
+### 3. The pooled out-of-sample table was computed after seeing ES
+
+The table in `CLAUDE.md` §4c pooling NQ/GC/CL/ES by in-sample status was built after
+the ES result was known and is **not** a registered test. It is reported as
+descriptive. It is also the single most informative number in the project, so it is
+kept — but it must not be cited as a confirmatory result.
+
+---
+
+# Deviation from the 40% consistency model (correction)
+
+An earlier version of `constraints.py` and `CLAUDE.md` §4b modelled the consistency
+rule as **40%, applied across both phases**. Aram confirmed it is **50%, funded phase
+only**. The 40% figure was never sourced from him — it came from `CLAUDE.md` §1,
+which says "40% consistency rule" without qualification, and it should have been
+flagged as needing confirmation before conclusions were drawn from it. It was not.
+
+§4b also mixed two simulation models with different horizons — `portfolio.campaign`
+(24 months, accounts replaced) for the size table and `first_payout` (48 months,
+single account) for the consistency table — and on that basis recommended **20
+micros**. On one consistent model the optimum is **5–8 micros** and 20 micros is
+nearly twice as expensive per success. Both errors are corrected; the corrected
+tables are the ones in §4b now.

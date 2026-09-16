@@ -8,20 +8,21 @@ It omits two things named in CLAUDE.md section 1 that turn out to dominate:
   1. **Position size is not free.** Too small and the trailing drawdown grinds the
      account out before it ever reaches the buffer; too large and variance kills
      it. There is an interior optimum, and it moves with trade frequency.
-  2. **The 40% consistency rule.** No single day may exceed 40% of total profit.
-     A 6RR strategy at a 33% win rate earns nearly everything on a handful of
-     days, which is precisely what that rule forbids.
+  2. **The 50% consistency rule.** No single day may exceed 50% of profit, and it
+     applies **only once the evaluation is passed** — the funded phase. A 6RR
+     strategy at a 33% win rate earns nearly everything on a handful of days,
+     which is what that rule constrains.
 
 Constraint 2 is the binding one and it was never modelled.
 
     python3 src/constraints.py
 
-IMPORTANT — the consistency rule is modelled on an ASSUMED interpretation:
-"at payout, the largest single winning day must be <= 40% of accumulated
-profit". Firms word this differently — some apply it only to the evaluation,
-some only to a first payout, some measure against gross rather than net. The
-conclusion here flips entirely on which applies, so CLAUDE.md section 8.4 (ask
-the firm) is the prerequisite for taking any of it seriously.
+The rule as CONFIRMED by Aram: **50%**, and it applies **once passed** — the
+funded phase only, not the evaluation. An earlier version of this file modelled
+40% and that was wrong; the correction is material and is recorded in
+DEVIATIONS.md. What remains assumed is the measurement basis (largest winning
+DAY against accumulated NET profit at payout); a per-trade or gross reading would
+differ, though far less than the 40/50 error did.
 """
 import os as _os
 ROOT = _os.environ.get("NQ_ROOT", _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
@@ -37,7 +38,7 @@ DD = 2000.0          # trailing drawdown
 PASS = 3000.0        # evaluation target
 BUFFER = 3000.0      # funded buffer before withdrawing
 PAYOUT = 600.0       # minimum payout
-CONSISTENCY = 0.40   # no single day above this share of total profit
+CONSISTENCY = 0.50   # no single day above this share of profit. FUNDED PHASE ONLY.
 WINRATE = 1 / 3      # measured on the 24 NQ trades
 
 MEASURED_RATE = 0.81     # NQ 0.61 + GC 0.04 + CL 0.16, see CLAUDE.md section 4a
@@ -113,7 +114,7 @@ def main():
               f"{best.died:.0f}% of accounts die")
 
     print("\n" + "=" * 94)
-    print("CONSTRAINT 2 — the 40% consistency rule, which portfolio.py omits")
+    print("CONSTRAINT 2 — the 50% consistency rule (funded phase), which portfolio.py omits")
     print("=" * 94)
     print(f"\nA 6RR strategy concentrates profit into single days. Median win vs the")
     print(f"${BUFFER + PAYOUT:,.0f} funded leg:\n")
@@ -121,7 +122,7 @@ def main():
     for sc in (1, 2.5, 4, 6):
         mw = np.median(WINS) * sc
         print(f"{int(5*sc):>8}{mw:>13,.0f}{100*mw/(BUFFER+PAYOUT):>25.0f}%")
-    print(f"\nAnything above {100*CONSISTENCY:.0f}% means one day carries the whole payout.")
+    print(f"\nAnything above {100*CONSISTENCY:.0f}% breaches the rule on a single day.")
 
     print("\nEnforcing the rule — the account must keep trading to dilute its best day:")
     for label, rate in (("measured NQ+GC+CL", MEASURED_RATE), ("assumed 8 instruments", ASSUMED_8)):
@@ -137,19 +138,19 @@ def main():
     print("READ THIS BEFORE ACTING ON ANY OF IT")
     print("=" * 94)
     print("""
-The consistency rule is modelled on an assumed interpretation (largest winning
-day <= 40% of accumulated profit, checked at payout). Under that reading the
-plan is close to infeasible: the account must accumulate several times the
-minimum payout to dilute one winning day below the threshold, and the $2,000
-trailing drawdown kills it first in the large majority of runs.
+The rule is 50% and applies to the funded phase only (confirmed by Aram). The
+binding quantity is the ratio of a typical WIN to the funded target: the funded
+leg needs $3,600, so any size whose median win exceeds $1,800 puts one day over
+half the profit and forces the account to keep trading to dilute it.
 
-Under a looser reading — evaluation phase only, or first payout only, or gross
-rather than net — the picture reverts to the CONSTRAINT 1 tables and the plan is
-merely slow rather than broken.
+That makes size the lever, and it now points the OPPOSITE way to CONSTRAINT 1.
+CONSTRAINT 1 wants size up to outrun the trailing drawdown; CONSTRAINT 2 wants
+size down so no single day dominates. The optimum is where they cross.
 
-Confirming which applies is CLAUDE.md section 8.4. It is a free question to the
-firm and it is now the highest-leverage unknown in the project. Do not size up
-on the CONSTRAINT 1 optimum until it is answered.
+Still assumed: that the rule measures the largest winning DAY against
+accumulated NET profit at payout. A per-trade or gross basis would shift the
+numbers, so it is worth confirming - but it is a refinement now, not the
+project-deciding unknown the 40% version was.
 """)
 
 

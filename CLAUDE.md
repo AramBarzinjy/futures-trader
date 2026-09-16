@@ -32,7 +32,7 @@ arithmetic wall. The way through is many cheap accounts, not one big one.
 
 ---
 
-## 2. Four investigations, four verdicts
+## 2. Five investigations, five verdicts
 
 ### (a) Perera paper — FABRICATED, closed
 *Volume Profile Mean Reversion with Tape Speed Confirmation*, L N H Perera, Jun 2026.
@@ -76,7 +76,20 @@ with every parameter fixed. Full verdict in §4a. Two separate outcomes:
   0.04 tradeable setups/month and CL 0.16, against NQ's 0.61. The §4 assumption that
   each new instrument contributes NQ's rate is **false**.
 
-**Do not re-run this on GC or CL — they are spent.** ES is the untouched reserve.
+**Do not re-run this on GC or CL — they are spent.** ES has since been spent too — see (e).
+
+### (e) Fibonacci entry sweep + ES holdout — WINNER'S CURSE, closed
+A sweep of 8 Fibonacci entry levels × 3 instruments found −0.618 looked far better
+than −2.0 (3.2× the trades, 1.75× the R/month). Pre-registered in
+`PREREGISTRATION-FIB.md` and tested once on **ES**, the last unexamined market.
+
+- **It did not survive.** −0.618's edge fell from +0.93R on NQ to **+0.14R on ES**
+  (p=0.37). The R/month advantage failed (p=0.32). Only the mechanical fill-rate
+  claim passed, as predicted.
+- **−2.0 on ES was negative** (−0.18R, n=8). Neither level works on ES.
+- Full detail in §4c.
+
+**Every market is now spent.** Forward testing is the only remaining route.
 
 ---
 
@@ -271,63 +284,110 @@ multi-instrument row in §4 as an upper bound that has failed its first test.
 
 ---
 
-## 4b. Position size and the 40% consistency rule
+## 4b. Position size and the 50% consistency rule
 
-Reproduce with `src/constraints.py`. Neither of these was modelled in
-`portfolio.py`, and the second one dominates everything else in the project.
+Reproduce with `src/constraints.py`. Neither was modelled in `portfolio.py`.
 
-### Size has an interior optimum, and it moves with frequency
+**Rule as confirmed by Aram: 50%, and it applies only once the evaluation is
+passed** — the funded phase. An earlier version of this section modelled 40% across
+both phases and was wrong; see `DEVIATIONS.md`. An earlier version also mixed two
+simulation models with different horizons and recommended 20 micros. That was also
+wrong. Both are corrected below, and everything here now comes from one model:
+single account, 48-month horizon, no replacement.
 
-Too small and the trailing drawdown grinds the account out before it reaches the
-buffer; too large and variance kills it. At the **measured** 0.81 trades/month:
+### The two constraints pull in opposite directions
 
-| micros | median months | P(payout ≤ 2mo) | account dies |
+Constraint 1 (trailing drawdown) wants size **up** — too small and the $2,000
+trailing limit grinds the account out before it reaches the buffer. Constraint 2
+(consistency) wants size **down** — the funded leg needs $3,600, so any size whose
+median win exceeds $1,800 puts one day over half the profit and forces the account
+to keep trading to dilute it.
+
+At the measured 0.81 trades/month, with the 50% rule enforced:
+
+| micros | median win | % of leg | median months | account dies | effective months |
+|---|---|---|---|---|---|
+| **5** | $1,332 | 37% | 24 | **31%** | **35** |
+| **8** | $2,130 | 59% | 16 | 55% | **35** |
+| 12 | $3,196 | 89% | 11 | 75% | 44 |
+| 20 | $5,326 | 148% | 7 | 89% | 64 |
+| 60 | $15,978 | 444% | 5 | 99% | 444 |
+
+"Effective months" is median months ÷ survival probability — months of attempts per
+success. **5–8 micros is the flat optimum.** Larger size looks faster on the median
+but only because the runs that die are excluded from it; on the survival-weighted
+measure, 20 micros is nearly twice as expensive as 5 and 60 micros is catastrophic.
+
+**P(payout within 2 months) never exceeds ~2% at any size at the measured rate.**
+Two months is a tail outcome, not a plan.
+
+Still assumed: that the rule measures the largest winning **day** against
+accumulated **net** profit at payout. A per-trade or gross basis would shift these
+numbers, though far less than the 40/50 error did.
+
+---
+
+## 4c. The Fibonacci sweep and what ES settled
+
+Requested directly. Run as `src/fib_sweep.py`: 8 Fibonacci entry levels × NQ, GC, CL
+× {geometry, LVN ≤ 0.25}. The stop keeps the method's own rule (half a leg beyond
+entry) and the target stays at level 1.
+
+### What the sweep showed
+
+Two things move **monotonically** with entry depth, and they are mechanical and
+trustworthy — on NQ, fill rate falls 85% → 22% and median RR rises 3.3 → 10.6 as the
+entry goes from −0.618 to −4.236. Shallower entries fill far more often at lower RR.
+
+**expR does not move monotonically.** Pooled across levels it reads 0.74, 0.40, 0.06,
+0.85, 1.35, 0.32, 0.61, 2.47 — no structure. Level-to-level expR differences are
+noise, and −0.618 vs −2.0 was never statistically distinguishable (diff −0.61R,
+se 0.65, t = −0.94).
+
+Of 41 cells with n ≥ 5, **9 survived Benjamini–Hochberg — but 7 of those were
+significantly NEGATIVE.** Surviving BH means "reliably different from zero", not
+"good". Only one positive cell survived: NQ at −0.618 (n=64, +0.93R, p=0.0010).
+
+### The ES test — and it failed
+
+−0.618 was the sweep's winner, chosen after seeing the data. `PREREGISTRATION-FIB.md`
+registered a single test of it on ES, the last unexamined market.
+
+| ES | fill | n (LVN) | trades/mo | win% | expR | R/month |
+|---|---|---|---|---|---|---|
+| −0.618 | 78% | 22 | 0.44 | 27.3 | **+0.14** | +0.06 |
+| −2.000 | 43% | 8 | 0.16 | 12.5 | **−0.18** | −0.03 |
+
+| Registered test | p | BH crit | |
 |---|---|---|---|
-| 12 (current plan) | 11 | 2.7% | 28% |
-| **20** | **8** | **7.8%** | **15%** |
-| 30 | 9 | 6.5% | 27% |
-| 60 (the cap) | 10 | 4.9% | 41% |
+| Primary — R/month higher at −0.618 | 0.322 | 0.067 | **fail** |
+| Secondary 1 — ES −0.618 expR > 0 | 0.372 | 0.100 | **fail** |
+| Secondary 2 — fill rate higher | 5.8e-10 | 0.033 | pass (mechanical) |
 
-20 micros beats the current 12 on **all three** axes at once. At the assumed
-8-instrument rate the optimum moves back down to 12 — low frequency needs size to
-outrun the trailing drawdown, high frequency does not.
+Per the decision rule in `PREREGISTRATION-FIB.md` §6: **both substantive endpoints
+failed, so the sweep's winner was the winner's curse. The entry depth stays at −2.0
+as specified in §3.**
 
-**Do not act on this yet.** See below.
+### The most informative table in the project
 
-### The 40% consistency rule may make the whole plan infeasible
+Pooling every market at −0.618 by whether it helped build the strategy
+(descriptive — computed after seeing ES, not a registered test):
 
-`CLAUDE.md` §1 lists a 40% consistency rule and nothing in the project ever
-modelled it. A 6RR strategy at a 33% win rate earns nearly everything on a few
-days, which is exactly what such a rule forbids.
-
-The funded leg needs $3,600. The median winning trade at 12 micros is **$3,329**
-— one day carrying 92% of the profit. At 20 micros a single win is 148% of the
-whole requirement.
-
-The only escape is to keep trading past the minimum until the best day is diluted
-below 40%. That means accumulating this much inside a $2,000 trailing drawdown:
-
-| micros | months without the rule | with the rule | profit needed | **account dies** |
+| Market | n | win% | expR | p |
 |---|---|---|---|---|
-| 12 | 7 | 12 | $12,300 | **82%** |
-| 20 | 4 | 8 | $18,830 | **93%** |
-| 30 | 3 | 6 | $28,112 | **98%** |
+| NQ — **in-sample, developed on** | 64 | 45.3 | **+0.93** | 0.001 |
+| GC — out-of-sample | 16 | 50.0 | +1.16 | 0.058 |
+| CL — out-of-sample | 35 | 28.6 | +0.19 | 0.573 |
+| ES — out-of-sample holdout | 22 | 27.3 | +0.14 | 0.743 |
+| **ALL OUT-OF-SAMPLE POOLED** | **73** | **32.9** | **+0.39** | **0.114** |
 
-Even at the assumed 8-instrument rate, **84%** of accounts die before a first
-payout. This is the same arithmetic wall as §1, arriving from a different
-direction: the rule demands many similar-sized winning days, and a 6RR strategy
-structurally cannot produce them.
+**In-sample +0.93R → out-of-sample +0.39R.** The +0.54R gap is what was fitted
+rather than found. The out-of-sample 95% CI is [−0.10, +0.88] — it includes zero.
 
-### The interpretation is assumed, and that is the whole question
-
-The model assumes "largest winning day ≤ 40% of accumulated profit, checked at
-payout". Firms word this differently — evaluation-phase only, first-payout only,
-gross rather than net. **Under a looser reading the plan is merely slow; under
-this one it is broken.**
-
-This makes §8.4 (ask the firm) the highest-leverage open item in the project. It
-is a free question with a decisive answer, and **no sizing decision should be made
-before it is answered.**
+This is not a refutation. n=73 is now the largest out-of-sample sample the project
+has, the point estimate is positive, and at RR 3.3 the breakeven win rate is 23.3%
+against an observed 32.9%. But the honest statement is: **the edge is probably real,
+roughly half the size the in-sample number suggests, and still not demonstrated.**
 
 ---
 
@@ -418,7 +478,8 @@ micros.
 | `databento_fetch.py` | Pull 1-min OHLCV straight from Databento into the continuous pickle |
 | `../tests/test_pipeline.py` | Plants a known setup in synthetic GC/CL bars and checks the method finds it |
 | `transfer_test.py` | Investigation (d): the pre-registered GC/CL test, endpoints and BH correction |
-| `constraints.py` | Optimal position size, and the 40% consistency rule that `portfolio.py` omits |
+| `constraints.py` | Optimal position size, and the 50% consistency rule that `portfolio.py` omits |
+| `fib_sweep.py` | Investigation (e): the method at every Fibonacci entry level, with BH |
 
 Run order for the live work:
 ```bash
@@ -467,8 +528,12 @@ This project stayed honest because of these rules. Keep them.
 6. **n=24 is n=24.** Every number in §3 is in-sample on 24 trades, 8 of them winners.
    No amount of further analysis of these four years changes that. Only forward trades do.
 7. **Don't chase the target.** If the honest answer is "this doesn't reach $3,000/month,"
-   say so. Four investigations have produced two clean negatives, one inconclusive and
-   one negative-on-frequency, and that was the value.
+   say so. Five investigations have produced three clean negatives, one inconclusive
+   and one negative-on-frequency, and that was the value.
+8. **A sweep winner is not a finding.** §4c is the worked example: −0.618 looked
+   decisively better across 3 markets and 41 cells, and died on the one market that
+   had no say in choosing it. Surviving Benjamini–Hochberg means "reliably non-zero",
+   not "good" — 7 of the 9 survivors there were significantly *negative*.
 
 ---
 
@@ -481,17 +546,17 @@ This project stayed honest because of these rules. Keep them.
    **Now the only remaining route.** §4a established that adding instruments cannot
    validate the edge — 80% power would need ~18 years at the measured rates. Forward
    trades are the sole way the sample grows. This is the highest-value open item.
-2a. **Re-examine the fill rate.** §4a found the −2.0 extension fills on 49% of NQ
-   setups but only 20% of GC and 34% of CL. Whether the −2.0 entry is too deep on
-   non-index markets is an open question — but note that changing it is a *tuning*
-   decision that would need its own pre-registration and a fresh market (ES) to test on.
+2a. ~~**Re-examine the fill rate.**~~ **DONE — see §4c.** Shallower entries do fill far
+   more often (78% vs 43% on ES, p=5.8e-10) but the extra trades did not carry an
+   edge. Mechanical claim confirmed, economic claim rejected.
+2b. ~~**Re-examine the entry depth.**~~ **DONE — see §4c.** The Fibonacci sweep found
+   −0.618 and ES rejected it. Entry stays at −2.0. Every market is now spent.
 3. **Reactive zones** — tested and negative as mechanised. If Aram can define what makes
    one zone "the most reactive", that is worth one more attempt.
-4. **ASK THE FIRM — now the highest-leverage item in the project.** Two questions:
-   - **How exactly is the 40% consistency rule applied?** Evaluation only, or every
-     payout? Largest *day* or largest *trade*? Against net or gross profit? §4b shows
-     the plan is broken under a strict reading and merely slow under a loose one.
-     Nothing else should be decided until this is answered.
+4. **Ask the firm** — the consistency rule is now confirmed (50%, funded phase only),
+   so what remains is smaller:
+   - Does the 50% rule measure the largest **day** or the largest **trade**, and
+     against **net** or **gross** profit? §4b assumes day-vs-net.
    - Whether repeat attempts after a blow-up are unrestricted. Unlimited concurrent
      purchases are confirmed; re-attempt policy was never confirmed.
 5. **Second TP / partial exits** — Aram mentioned experimenting with multiple take-profits.
@@ -503,5 +568,6 @@ This project stayed honest because of these rules. Keep them.
 - The Drawdown Ceiling — investigation (b) and the Sharpe 9–13 finding
 - The Low Volume Node — investigation (c), the live hypothesis
 
-Investigation (d), the GC/CL transfer test, has no report yet. Its numbers are in
-§4a, `results/transfer_*.csv`, and reproduce from `src/transfer_test.py`.
+Investigations (d) and (e) have no reports yet. Their numbers are in §4a and §4c,
+`results/transfer_*.csv` and `results/fib_sweep*.csv`, and reproduce from
+`src/transfer_test.py` and `src/fib_sweep.py`.
