@@ -91,22 +91,24 @@ than −2.0 (3.2× the trades, 1.75× the R/month). Pre-registered in
 
 **Every market is now spent.** Forward testing is the only remaining route.
 
-### (f) Apex $50K Intraday search — REGISTERED, BLOCKED ON DATA
+### (f) Apex $50K Intraday search — NEGATIVE, closed
 Aram asked for a new, broader NQ search against the real Apex Trader Funding
-$50K Intraday rules. It uses a walk-forward protocol, a locked holdout, a
+$50K Intraday rules. It used a walk-forward protocol, a locked holdout, a
 research budget and cost stress tests. Protocol: `PREREGISTRATION-APEX.md`
-(registry hash `c7805f7c88011621`). Full state in §4d.
+(registry hash `c7805f7c88011621`), amended once before running (§12,
+Amendment A). Full state in §4d.
 
-- 8 new hypotheses and 46 variants: volume shock, anchored-VWAP reversion,
-  NQ–ES relative value, overnight-compression breakout, 08:30 news bar,
-  overnight drift, and two order-flow effects. **Nothing from (a)–(c) is re-tested.**
-- The engine (`bt.py`), Apex lifecycle simulator (`apex_sim.py`), runner (`wf.py`)
-  and tests are built. The full pipeline runs end to end on edge-free synthetic
-  data (the null calibration).
-- **Not yet run on real data.** The container has none. It needs a Databento key
-  and about 5 years of full-size NQ and ES (§4d).
-- The rules alone already settle a lot. See §4d for what Apex demands and what
-  it does to Aram's method.
+- Run once on the MNQ file Aram supplied (2024-02 → 2026-09). Five of the eight
+  hypotheses were testable. H3 needs ES bars, and H7/H8 need order-flow data.
+- **No finalist and no BH survivor.** The best out-of-sample t was 1.00
+  (overnight drift). Its top 1% of days carried 100% of its profit, and only
+  one of four folds was positive.
+- **The investigation stops here**, as registered. The 2026 holdout was never
+  touched and is still unspent.
+- The design could only detect daily Sharpe ≥ ~0.20. Smaller edges are "not
+  detected", not "absent".
+
+---
 
 ---
 
@@ -410,38 +412,43 @@ roughly half the size the in-sample number suggests, and still not demonstrated.
 
 ## 4d. Apex $50K Intraday — what the rules alone establish
 
-Rules: `src/apex_rules.py`. Each value has a source and a status. Apex's site
-blocks this container, so values come from the search-indexed text of the
-official pages. **The drawdown is $2,000, confirmed by Aram** (2026-09-30).
-**Still to confirm in writing before paying:** the evaluation's minimum days
-(0 vs 7), the contract cap, the PA scaling-level table, any per-payout cap and
-any activation fee. The $2,500 rows in `edge_map.csv` and `lvn_under_apex.csv`
-are now obsolete.
+Rules: `src/apex_rules.py`. Each value has a source and a status. **Aram
+trades with Apex Trader Funding** (confirmed 2026-09-30). Where §1 disagrees
+with `apex_rules.py`, `apex_rules.py` governs.
+
+**Confirmed by Aram:**
+- drawdown: $2,000
+- contract cap: 60 micros, in the evaluation and the PA
+- payouts: 5 winning days after passing before a request, capped at $2,000 per request
+- evaluation fee: about £18
+- activation fee: about £40
+
+**Still unconfirmed:** whether the evaluation has a minimum number of days (0 vs 7).
 
 Mechanics as modelled: a +$3,000 target within 30 days. The $2,000 trail follows
 peak **unrealised** equity and breaches on touch. The evaluation has no daily
 loss limit. The PA has a $1,000 daily loss limit that pauses the day rather than
 failing the account. A payout needs 5 days of ≥ $200 profit, a $52,100 safety
 net, no single day ≥ 50% of profit since the last payout, $500 minimum, at most
-6 payouts, 100% split.
+6 payouts, 100% split, $2,000 cap per payout.
 
 ### What edge the account demands (`src/edge_map.py`, no market data)
 
 Trades every session, $2,000 trail, size chosen optimally:
 
-| Daily Sharpe | P(pass) | P(2+ payouts \| pass) | Payouts per attempt |
+| Daily Sharpe | P(pass) | P(2+ payouts \| pass) | Net per attempt after both fees |
 |---|---|---|---|
-| 0 (no edge) | 14% | 18% | $157 |
-| 0.10 (≈1.6 annualised) | 26% | 41% | $783 |
-| 0.20 | 40% | 65% | $2,427 |
-| 0.50 (≈8 annualised) | 80% | 93% | $10,363 |
+| 0 (no edge) | 14% | 17% | $123 |
+| 0.10 (≈1.6 annualised) | 25% | 40% | $690 |
+| 0.20 | 41% | 65% | $2,335 |
+| 0.50 (≈8 annualised) | 78% | 94% | $7,866 |
 
 - **The optimal daily σ is about $500**, a quarter of the drawdown, at every edge
   level. Too small and the 30-day window runs out; too large and the trail kills it.
 - **The brief's targets are unreachable.** A 70% pass rate and under 30% funded
   breach need a daily Sharpe near 0.5.
-- **A zero-edge strategy still collects about $157 per attempt**, because the
-  account is a call option. "Payouts exceed the fee" proves nothing. Gate G9 makes
+- **A zero-edge strategy still nets about $123 per attempt after fees** in this
+  model, because the account is a call option. "Payouts exceed the fee" proves nothing. Gate G9 makes
   a strategy beat its own de-meaned copy.
 - **A strategy trading on 25% of sessions passes ≤ 10% of the time, at any edge.**
 
@@ -456,22 +463,40 @@ wins ties, limits need a trade-through) showing as a small, measurable drag.
 limit settings, so it is permissive by itself and must never be read without
 G1–G8. Summary: `results/apex/null_calibration/summary.csv`.
 
+### Investigation (f) result (`wf.py`, run once on MNQ 2024-02 → 2025-12)
+
+258 out-of-sample sessions, baseline costs, $ per micro per day:
+
+| Hypothesis | trades | mean/day | t | top 1% of days' share | folds + | verdict |
+|---|---|---|---|---|---|---|
+| H1 volume shock | 313 | −0.23 | −0.07 | — | 1/4 | fail |
+| H2 VWAP reversion | 68 | +2.10 | 0.32 | 212% | 3/4 | fail |
+| H4 compression break | 53 | −1.80 | −0.39 | — | 2/4 | fail |
+| H5 08:30 news bar | 40 | +0.07 | 0.01 | 5,730% | 1/4 | fail |
+| H6 overnight drift | 256 | +10.43 | 1.00 | 100% | 1/4 | fail |
+| H3, H7, H8 | — | — | — | — | — | untestable (no ES, no order flow) |
+
+G9 fired for H2 and H6. As the null calibration warned, it is permissive alone:
+it takes the best of 90 size settings. On records carried by a few days it
+passes easily, and it is meaningless without G1–G8. Files:
+`results/apex/gate_registered.csv`, `lifecycle_registered_*.csv`,
+`ledger.jsonl`. The null calibration on the amended split
+(`null_calibration_amendA/`) found 0 survivors in 32 tests, with a best t of 1.12.
+
 ### Aram's LVN method under Apex (`src/apex_lvn.py`)
 
-This replays the 24 in-sample trades, with intraday paths assumed favourable. It
-is an upper bound.
+This replays the 24 in-sample trades, with intraday paths assumed favourable,
+under the confirmed rules. It is an upper bound.
 
-| micros | P(pass) | P(2+ payouts \| pass) | median sessions to 1st payout | payouts/attempt | same, edge removed |
-|---|---|---|---|---|---|
-| 12 | 10% | 6% | ~450 | $719 | $56 |
-| **20** | **15%** | **4%** | **~480** | **$1,493** | $334 |
+| micros | P(pass) | P(2+ payouts \| pass) | median sessions to 1st payout | payouts/attempt | net after fees | same, edge removed |
+|---|---|---|---|---|---|---|
+| 12 | 10% | 6% | ~450 | $124 | $95 | $17 |
+| **20** | **16%** | **4%** | **~480** | **$148** | **$117** | $48 |
 
-**Apex is a poor fit for this method's shape.** At about 0.5 trades a month,
-most evaluations simply time out. Once funded, five ≥ $200 days and the 50% rule
-together need about five winning trades per payout, which is roughly two years.
-The payout per attempt is real value over the option, but it is in-sample and
-arrives slowly. A firm with no qualifying-day minimum, or a longer evaluation,
-would suit it far better.
+**The $2,000 payout cap cut this by about 90%.** Uncapped, it was $1,493 per
+attempt at 20 micros. Each capped request needs five more winning days, and at
+about 0.5 trades a month that takes years. On Apex, this method is worth about
+**$5 a month per evaluation bought**, even in-sample.
 
 ---
 
@@ -632,7 +657,10 @@ This project stayed honest because of these rules. Keep them.
 
 ## 8. Open items
 
-0. **Investigation (f) needs data.** Put a Databento key in `.env`, then:
+0. ~~**Investigation (f) needs data.**~~ **DONE — negative, see §2(f) and §4d.**
+   If ES bars and NQ order flow are ever fetched, H3/H7/H8 could be run under
+   the same frozen protocol. That would take a new registration and Aram's
+   approval. The original data plan is kept below for reference:
    ```bash
    python3 src/databento_fetch.py --cost --start 2021-06-01 --end <latest> NQ ES
    python3 src/databento_fetch.py        --start 2021-06-01 --end <latest> NQ ES
