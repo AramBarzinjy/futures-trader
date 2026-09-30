@@ -18,6 +18,7 @@ restricted to the two Apex domains. Status values:
   CONFLICT  — official snippets disagree; the primary value and the alternative
               are both simulated.
   UNKNOWN   — not found; the simulator uses a stated conservative assumption.
+  ARAM      — confirmed by Aram directly (he holds the account terms).
 
 None of this is "in writing from the firm" in the sense Step 8 of the brief asks
 for. Before any money is spent, Aram should confirm every row that is not SNIPPET
@@ -54,14 +55,13 @@ RULES = {
         "Intraday Evaluations page: threshold stop level is $53,000, reached when "
         "the peak hits $55,000 = 'Profit Target Balance + Max Drawdown'. So the "
         "profit target balance is $53,000, i.e. +$3,000."),
-    "trailing_dd": Rule(2_000.0, "CONFLICT",
-        "$2,000 is implied twice by official arithmetic: eval threshold locks at "
-        "$53,000 when peak = $55,000, and PA threshold locks at $50,100 when peak = "
-        "$52,100 = start + max drawdown + $100. But the Position Sizing page snippet "
-        "says 'a $50k plan starts at $47,500' ($2,500), and a search summary "
-        "repeated $2,500. $2,500 may be the legacy or EOD product. Primary $2,000; "
-        "$2,500 is simulated as the alternative."),
-    "trailing_dd_alt": Rule(2_500.0, "CONFLICT", "See trailing_dd."),
+    "trailing_dd": Rule(2_000.0, "ARAM",
+        "Confirmed by Aram on 2026-09-30: the drawdown is $2,000. This matches the "
+        "official arithmetic (eval threshold locks at $53,000 when peak = $55,000; "
+        "PA threshold locks at $50,100 when peak = $52,100). The $2,500 figure on "
+        "the Position Sizing page does not apply to this account."),
+    "trailing_dd_alt": Rule(2_500.0, "RESOLVED",
+        "Kept only so earlier edge-map output reproduces. Not the account's rule."),
     "dd_uses_unrealized": Rule(True, "SNIPPET",
         "'moves dynamically with your account's highest balance (Peak Balance), "
         "including unrealized gains, and is enforced intraday at all times.'"),

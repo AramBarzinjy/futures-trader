@@ -204,3 +204,10 @@ rules in writing.
 Recorded in `PREREGISTRATION-APEX.md` §3. 2025-10-01 onward overlaps the spent
 holdout of investigation (b) and the development data of investigation (c).
 Forward paper trading from 2026-10-01 is the only fully clean test.
+
+### 5. The drawdown conflict is resolved: $2,000
+
+Aram confirmed the $50K Intraday drawdown is $2,000 (2026-09-30), before any real
+data was loaded. That was already the primary value in `PREREGISTRATION-APEX.md`
+§1, so nothing in the protocol changes. The $2,500 alternative is no longer
+simulated as a live possibility.

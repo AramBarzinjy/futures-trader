@@ -412,10 +412,11 @@ roughly half the size the in-sample number suggests, and still not demonstrated.
 
 Rules: `src/apex_rules.py`. Each value has a source and a status. Apex's site
 blocks this container, so values come from the search-indexed text of the
-official pages. **Confirm in writing before paying:** the drawdown ($2,000,
-though one page implies $2,500), the evaluation's minimum days (0 vs 7), the
-contract cap, the PA scaling-level table, any per-payout cap and any activation
-fee.
+official pages. **The drawdown is $2,000, confirmed by Aram** (2026-09-30).
+**Still to confirm in writing before paying:** the evaluation's minimum days
+(0 vs 7), the contract cap, the PA scaling-level table, any per-payout cap and
+any activation fee. The $2,500 rows in `edge_map.csv` and `lvn_under_apex.csv`
+are now obsolete.
 
 Mechanics as modelled: a +$3,000 target within 30 days. The $2,000 trail follows
 peak **unrealised** equity and breaches on touch. The evaluation has no daily
@@ -639,7 +640,8 @@ This project stayed honest because of these rules. Keep them.
    python3 src/wf.py                     # the registered run, once
    python3 src/wf.py --holdout           # only if wf.py wrote finalists
    ```
-   Also have Aram confirm the rule rows marked CONFLICT/UNKNOWN in `apex_rules.py`.
+   Also have Aram confirm the rule rows still marked CONFLICT/UNKNOWN in
+   `apex_rules.py`. The $2,000 drawdown is confirmed.
 
 1. ~~**Get GC data and run the method on it.**~~ **DONE — see §4a.** Edge inconclusive
    (n=10, 31% power); frequency a clear negative (GC 0.04/mo, CL 0.16/mo vs NQ 0.61).
