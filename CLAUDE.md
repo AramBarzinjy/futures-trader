@@ -444,6 +444,17 @@ Trades every session, $2,000 trail, size chosen optimally:
   a strategy beat its own de-meaned copy.
 - **A strategy trading on 25% of sessions passes ≤ 10% of the time, at any edge.**
 
+### Null calibration (`wf.py --synthetic`, edge-free data)
+
+Eight synthetic datasets were run through the full pipeline: four with costs,
+four cost-free. Across 64 hypothesis tests there were **0 finalists and 0 BH
+survivors**, and the best out-of-sample t was 1.23. On cost-free data the mean
+sits slightly below zero. That is the engine's deliberate fill pessimism (stop
+wins ties, limits need a trade-through) showing as a small, measurable drag.
+**G9 alone fired once in 32 cost-free tests.** It takes the best of 90 size and
+limit settings, so it is permissive by itself and must never be read without
+G1–G8. Summary: `results/apex/null_calibration/summary.csv`.
+
 ### Aram's LVN method under Apex (`src/apex_lvn.py`)
 
 This replays the 24 in-sample trades, with intraday paths assumed favourable. It
