@@ -32,7 +32,7 @@ arithmetic wall. The way through is many cheap accounts, not one big one.
 
 ---
 
-## 2. Five investigations, five verdicts
+## 2. Six investigations
 
 ### (a) Perera paper — FABRICATED, closed
 *Volume Profile Mean Reversion with Tape Speed Confirmation*, L N H Perera, Jun 2026.
@@ -90,6 +90,23 @@ than −2.0 (3.2× the trades, 1.75× the R/month). Pre-registered in
 - Full detail in §4c.
 
 **Every market is now spent.** Forward testing is the only remaining route.
+
+### (f) Apex $50K Intraday search — REGISTERED, BLOCKED ON DATA
+Aram asked for a new, broader NQ search against the real Apex Trader Funding
+$50K Intraday rules. It uses a walk-forward protocol, a locked holdout, a
+research budget and cost stress tests. Protocol: `PREREGISTRATION-APEX.md`
+(registry hash `c7805f7c88011621`). Full state in §4d.
+
+- 8 new hypotheses and 46 variants: volume shock, anchored-VWAP reversion,
+  NQ–ES relative value, overnight-compression breakout, 08:30 news bar,
+  overnight drift, and two order-flow effects. **Nothing from (a)–(c) is re-tested.**
+- The engine (`bt.py`), Apex lifecycle simulator (`apex_sim.py`), runner (`wf.py`)
+  and tests are built. The full pipeline runs end to end on edge-free synthetic
+  data (the null calibration).
+- **Not yet run on real data.** The container has none. It needs a Databento key
+  and about 5 years of full-size NQ and ES (§4d).
+- The rules alone already settle a lot. See §4d for what Apex demands and what
+  it does to Aram's method.
 
 ---
 
@@ -391,6 +408,61 @@ roughly half the size the in-sample number suggests, and still not demonstrated.
 
 ---
 
+## 4d. Apex $50K Intraday — what the rules alone establish
+
+Rules: `src/apex_rules.py`. Each value has a source and a status. Apex's site
+blocks this container, so values come from the search-indexed text of the
+official pages. **Confirm in writing before paying:** the drawdown ($2,000,
+though one page implies $2,500), the evaluation's minimum days (0 vs 7), the
+contract cap, the PA scaling-level table, any per-payout cap and any activation
+fee.
+
+Mechanics as modelled: a +$3,000 target within 30 days. The $2,000 trail follows
+peak **unrealised** equity and breaches on touch. The evaluation has no daily
+loss limit. The PA has a $1,000 daily loss limit that pauses the day rather than
+failing the account. A payout needs 5 days of ≥ $200 profit, a $52,100 safety
+net, no single day ≥ 50% of profit since the last payout, $500 minimum, at most
+6 payouts, 100% split.
+
+### What edge the account demands (`src/edge_map.py`, no market data)
+
+Trades every session, $2,000 trail, size chosen optimally:
+
+| Daily Sharpe | P(pass) | P(2+ payouts \| pass) | Payouts per attempt |
+|---|---|---|---|
+| 0 (no edge) | 14% | 18% | $157 |
+| 0.10 (≈1.6 annualised) | 26% | 41% | $783 |
+| 0.20 | 40% | 65% | $2,427 |
+| 0.50 (≈8 annualised) | 80% | 93% | $10,363 |
+
+- **The optimal daily σ is about $500**, a quarter of the drawdown, at every edge
+  level. Too small and the 30-day window runs out; too large and the trail kills it.
+- **The brief's targets are unreachable.** A 70% pass rate and under 30% funded
+  breach need a daily Sharpe near 0.5.
+- **A zero-edge strategy still collects about $157 per attempt**, because the
+  account is a call option. "Payouts exceed the fee" proves nothing. Gate G9 makes
+  a strategy beat its own de-meaned copy.
+- **A strategy trading on 25% of sessions passes ≤ 10% of the time, at any edge.**
+
+### Aram's LVN method under Apex (`src/apex_lvn.py`)
+
+This replays the 24 in-sample trades, with intraday paths assumed favourable. It
+is an upper bound.
+
+| micros | P(pass) | P(2+ payouts \| pass) | median sessions to 1st payout | payouts/attempt | same, edge removed |
+|---|---|---|---|---|---|
+| 12 | 10% | 6% | ~450 | $719 | $56 |
+| **20** | **15%** | **4%** | **~480** | **$1,493** | $334 |
+
+**Apex is a poor fit for this method's shape.** At about 0.5 trades a month,
+most evaluations simply time out. Once funded, five ≥ $200 days and the 50% rule
+together need about five winning trades per payout, which is roughly two years.
+The payout per attempt is real value over the option, but it is in-sample and
+arrives slowly. A firm with no qualifying-day minimum, or a longer evaluation,
+would suit it far better.
+
+---
+
 ## 5. Data
 
 ### What exists
@@ -480,6 +552,15 @@ micros.
 | `transfer_test.py` | Investigation (d): the pre-registered GC/CL test, endpoints and BH correction |
 | `constraints.py` | Optimal position size, and the 50% consistency rule that `portfolio.py` omits |
 | `fib_sweep.py` | Investigation (e): the method at every Fibonacci entry level, with BH |
+| `apex_rules.py` | Investigation (f): Apex $50K Intraday rules, each with source and verification status |
+| `apex_sim.py` | Apex lifecycle: evaluation, PA, payouts, on intraday paths with pessimistic in-bar order |
+| `bt.py` | Deterministic 1-minute engine: pessimistic fills, trade-through limits, costs, slippage models |
+| `hypotheses_f.py` | The 8 registered hypotheses and 46-variant grid, hashed |
+| `wf.py` | Walk-forward runner, holdout lock, append-only ledger, gates G1–G9, `--synthetic` null calibration |
+| `edge_map.py` | What daily Sharpe and σ the Apex rules demand, with no market data |
+| `apex_lvn.py` | Aram's 24 LVN trades replayed under Apex rules |
+| `synth.py` | Edge-free synthetic Globex bars for tests and the null calibration |
+| `../tests/test_apex.py` | Fill rules, look-ahead canary on every variant, Apex state machine |
 
 Run order for the live work:
 ```bash
@@ -538,6 +619,16 @@ This project stayed honest because of these rules. Keep them.
 ---
 
 ## 8. Open items
+
+0. **Investigation (f) needs data.** Put a Databento key in `.env`, then:
+   ```bash
+   python3 src/databento_fetch.py --cost --start 2021-06-01 --end <latest> NQ ES
+   python3 src/databento_fetch.py        --start 2021-06-01 --end <latest> NQ ES
+   python3 src/databento_fetch.py --cost --delta --start 2021-06-01 --end <latest> NQ  # H7/H8 only if <= $100
+   python3 src/wf.py                     # the registered run, once
+   python3 src/wf.py --holdout           # only if wf.py wrote finalists
+   ```
+   Also have Aram confirm the rule rows marked CONFLICT/UNKNOWN in `apex_rules.py`.
 
 1. ~~**Get GC data and run the method on it.**~~ **DONE — see §4a.** Edge inconclusive
    (n=10, 31% power); frequency a clear negative (GC 0.04/mo, CL 0.16/mo vs NQ 0.61).

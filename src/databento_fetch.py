@@ -108,6 +108,71 @@ def cost(keys, start: str, end: str) -> None:
     print("\nNew accounts get $125 in free credits, so this should draw on those.")
 
 
+def _month_chunks(start: str, end: str):
+    a = pd.Timestamp(start)
+    b = pd.Timestamp(end)
+    while a < b:
+        n = min((a + pd.offsets.MonthBegin(1)).normalize(), b)
+        yield str(a.date()), str(n.date())
+        a = n
+
+
+def cost_delta(keys, start: str, end: str) -> None:
+    """Price the trades-schema pull that order-flow hypotheses need. Free to call."""
+    key = api_key()
+    total = 0.0
+    for k in keys:
+        inst = I.get(k)
+        p = dict(_params(inst, start, end), schema="trades")
+        size = float(_post("metadata.get_billable_size", key, p).json())
+        usd = float(_post("metadata.get_cost", key, dict(p, mode="historical-streaming")).json())
+        total += usd
+        print(f"{inst.key:<6}{inst.continuous:>10}  trades  {size/1e9:>9.2f}GB {usd:>9.2f}$")
+    print(f"total {total:.2f}$ — investigation (f) tests H7/H8 only if this fits the budget "
+          "registered in PREREGISTRATION-APEX.md section 2.")
+
+
+def fetch_delta(k: str, start: str, end: str, force: bool = False) -> str:
+    """Aggressor delta per 1-minute bar from the trades schema, fetched month by month.
+
+    Databento's `side` on a trade is the aggressor: 'B' = buyer lifted the offer,
+    'A' = seller hit the bid, 'N' = unknown (excluded). delta = buy - sell volume.
+    Each month is aggregated and its raw file deleted before the next is pulled, so
+    disk use stays at one month of raw trades.
+    """
+    inst = I.get(k)
+    out = f"{ROOT}/data/{inst.key.lower()}_delta_1m.pkl"
+    if _os.path.exists(out) and not force:
+        print(f"{out} exists, skipping")
+        return out
+    key = api_key()
+    parts = []
+    for a, b in _month_chunks(start, end):
+        zst = f"{ROOT}/data/_trades_{a}.csv.zst"
+        csv = zst[:-4]
+        p = dict(_params(inst, a, b), schema="trades", encoding="csv", compression="zstd",
+                 pretty_px="true", pretty_ts="true", map_symbols="true")
+        r = _post("timeseries.get_range", key, p, stream=True)
+        with open(zst, "wb") as f:
+            for chunk in r.iter_content(1 << 20):
+                f.write(chunk)
+        decompress_to_file(zst, csv)
+        _os.remove(zst)
+        agg = []
+        for ch in pd.read_csv(csv, usecols=["ts_event", "side", "size"], chunksize=2_000_000):
+            ts = pd.to_datetime(ch.ts_event, format="ISO8601", utc=True).dt.floor("1min")
+            sgn = ch.side.map({"B": 1, "A": -1}).fillna(0)
+            agg.append(pd.DataFrame({"ts": ts, "delta": sgn * ch["size"]}).groupby("ts").delta.sum())
+        _os.remove(csv)
+        m = pd.concat(agg).groupby(level=0).sum()
+        parts.append(m)
+        print(f"  {a}: {len(m):,} minutes")
+    d = pd.concat(parts).groupby(level=0).sum().rename("delta").reset_index()
+    d.to_pickle(out)
+    print(f"-> {out}")
+    return out
+
+
 def fetch(k: str, start: str, end: str, force: bool = False) -> str:
     """Download one instrument and write its continuous 1-minute pickle."""
     inst = I.get(k)
@@ -208,6 +273,8 @@ def main():
     ap.add_argument("--start", default=I.START)
     ap.add_argument("--end", default=I.END)
     ap.add_argument("--force", action="store_true", help="refetch even if the pickle exists")
+    ap.add_argument("--delta", action="store_true",
+                    help="order flow: 1-minute aggressor delta from the trades schema")
     a = ap.parse_args()
 
     keys = I.PRIORITY if a.all else [k.upper() for k in a.instruments]
@@ -220,10 +287,10 @@ def main():
             ap.error(str(e).strip('"'))
 
     if a.cost:
-        cost(keys, a.start, a.end)
+        (cost_delta if a.delta else cost)(keys, a.start, a.end)
         return
     for k in keys:
-        fetch(k, a.start, a.end, force=a.force)
+        (fetch_delta if a.delta else fetch)(k, a.start, a.end, force=a.force)
 
 
 if __name__ == "__main__":

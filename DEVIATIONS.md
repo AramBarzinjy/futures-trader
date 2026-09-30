@@ -161,3 +161,46 @@ single account) for the consistency table — and on that basis recommended **20
 micros**. On one consistent model the optimum is **5–8 micros** and 20 micros is
 nearly twice as expensive per success. Both errors are corrected; the corrected
 tables are the ones in §4b now.
+
+---
+
+# Investigation (f) — deviations from PREREGISTRATION-APEX.md
+
+### 1. The engine and simulator were debugged on synthetic data before the protocol was final
+
+`PREREGISTRATION-APEX.md` briefly held only its `REGISTRY_SHA` line while the
+runner was smoke-tested end to end on edge-free synthetic bars (`src/synth.py`).
+No real market data existed in the container at any point, so nothing in the
+protocol could have been shaped by an NQ or ES result. The hypothesis grid was
+never edited after its hash was taken.
+
+### 2. Two defects found in the lifecycle simulator's path handling, before any real run
+
+Each simulated bar plays its favourable extreme before its adverse one, which is
+the pessimistic order for a trailing threshold. On the bar a trade **exits at its
+target** that order is wrong. The fill happens at the high, so a low printed
+later in the same bar cannot hurt the trade. Under the old order, a clean
++$3,000 winner could raise the threshold to +$1,000 and then "breach" on its own
+entry-level low. That made every low-frequency, high-RR strategy look
+unpassable. `bt.py` now splits a target-exit bar into (low, low, low) followed
+by (net, net, net). A stop-exit bar now closes its adverse leg at the realised
+exit. `tests/test_apex.py` pins both. The first null-calibration runs used the
+old paths, were discarded, and were re-run.
+
+### 3. The Apex rules could not be read from the source
+
+apextraderfunding.com blocks this container, a headless browser and the
+web-fetch tool with a Cloudflare challenge. The rules were taken from the
+search-indexed text of the official pages. That is weaker than the brief's
+"in writing from the firm". Every value carries a status in `src/apex_rules.py`.
+Two rows conflict between official pages: the drawdown ($2,000 vs $2,500) and
+the evaluation's minimum days (0 vs 7). Four rows were not found: the contract
+cap, the PA level table, a per-payout cap and the activation fee. The conflicts
+are simulated both ways. None of this is a substitute for Aram confirming the
+rules in writing.
+
+### 4. The holdout has been seen by the project, though not by these hypotheses
+
+Recorded in `PREREGISTRATION-APEX.md` §3. 2025-10-01 onward overlaps the spent
+holdout of investigation (b) and the development data of investigation (c).
+Forward paper trading from 2026-10-01 is the only fully clean test.

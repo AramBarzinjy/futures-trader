@@ -36,6 +36,19 @@ python3 src/build_continuous.py        # -> data/mnq_cont_1m.pkl
 `zstd_ctypes.py` binds the system libzstd through ctypes, so `pip install zstandard`
 isn't needed.
 
+## Investigation (f): Apex $50K Intraday
+
+Protocol in `PREREGISTRATION-APEX.md`; state in `CLAUDE.md` §2(f) and §4d.
+
+```bash
+python3 tests/test_apex.py            # engine, look-ahead canary, Apex state machine
+python3 src/apex_rules.py             # the rules and which ones still need confirming
+python3 src/edge_map.py               # what edge the account demands (no data needed)
+python3 src/apex_lvn.py               # the LVN trades under Apex rules
+python3 src/wf.py --synthetic 2       # null calibration on edge-free data
+python3 src/wf.py                     # the registered run: needs full-size NQ + ES
+```
+
 ## Reproduce the live result
 
 ```bash
