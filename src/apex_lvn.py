@@ -37,17 +37,16 @@ def main():
     null = _days(T.session, per - per.mean(), sess)     # same shape, edge removed
     print(f"{len(T)} trades over {len(sess)} weekdays = {len(T) / len(sess) * 21:.2f} trades/month\n")
     rows = []
-    for cfg_name, cfg in [("$2,000 DD", AR.PRIMARY), ("$2,500 DD", AR.ALT_DD)]:
-        for m in (5, 8, 12, 20, 30, 40):
-            cfg_m = cfg if m <= cfg.eval_max_micros else \
-                cfg.__class__(**{**cfg.__dict__, "eval_max_micros": m})
+    for cfg_name, cfg in [("Apex as confirmed", AR.PRIMARY)]:
+        for m in (5, 8, 12, 20, 30, 40, 60):
+            cfg_m = cfg
             s = SIM.run(SIM.day_bootstrap(days, block=1), cfg_m, SIM.Controls(micros=m), n=4000, seed=m)
             z = SIM.run(SIM.day_bootstrap(null, block=1), cfg_m, SIM.Controls(micros=m), n=4000, seed=m)
             rows.append(dict(rules=cfg_name, micros=m, median_win=float(np.median(per[per > 0]) * m),
                              **{k: s[k] for k in ("p_pass", "eval_fail_dd", "eval_fail_timeout",
                                                   "p_any_payout_given_pass", "p_2_payouts_given_pass",
                                                   "median_sessions_to_1st_payout",
-                                                  "breakeven_fee")},
+                                                  "breakeven_fee", "net_ev_per_attempt")},
                              null_breakeven_fee=z["breakeven_fee"]))
     R = pd.DataFrame(rows)
     pd.set_option("display.width", 250)

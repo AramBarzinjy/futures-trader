@@ -211,3 +211,25 @@ Aram confirmed the $50K Intraday drawdown is $2,000 (2026-09-30), before any rea
 data was loaded. That was already the primary value in `PREREGISTRATION-APEX.md`
 §1, so nothing in the protocol changes. The $2,500 alternative is no longer
 simulated as a live possibility.
+
+### 6. Amendment A: MNQ 2024-02 → 2026-09 instead of NQ + ES 2021 → 2026
+
+Recorded in full in `PREREGISTRATION-APEX.md` §12, written and committed before
+any hypothesis ran on the supplied file. In summary:
+- MNQ volume stands in for full-size NQ.
+- The split is re-drawn on 2.7 years, with the holdout starting 2026-01-01.
+- H3, H7 and H8 are untestable and count as p = 1.
+- G8 is pending, so a candidate that passes everything else is only provisional.
+- Power drops, and the minimum detectable daily Sharpe rises from about 0.14 to
+  about 0.20.
+
+This amendment makes a positive result harder to get and a negative one less
+informative. Both effects are stated in the protocol.
+
+### 7. Rules updated from Aram before the real run
+
+The contract cap is 60 micros, now applied in the PA as well. The payout cap is
+$2,000. Payouts need 5 winning days. The evaluation fee is about £18 and the
+activation fee about £40. Previously the payout was uncapped, the PA cap was
+20 micros and fees were zero. The edge map and the LVN replay are re-run under
+the new rules. The $2,500 rows are dropped.

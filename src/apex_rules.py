@@ -18,7 +18,8 @@ restricted to the two Apex domains. Status values:
   CONFLICT  — official snippets disagree; the primary value and the alternative
               are both simulated.
   UNKNOWN   — not found; the simulator uses a stated conservative assumption.
-  ARAM      — confirmed by Aram directly (he holds the account terms).
+  ARAM      — confirmed by Aram directly (he holds the account terms). Aram
+              trades with Apex Trader Funding (confirmed 2026-09-30).
 
 None of this is "in writing from the firm" in the sense Step 8 of the brief asks
 for. Before any money is spent, Aram should confirm every row that is not SNIPPET
@@ -82,16 +83,12 @@ RULES = {
         "'will be marked as passed after market close'. Modelled as: the closed "
         "balance at a session close is >= target. Touching the target intraday "
         "and giving it back does not pass."),
-    "eval_max_contracts": Rule(4, "UNKNOWN",
-        "Not found for the current product. Contract limits 'remain fixed "
-        "throughout the Evaluation'. 4 minis = 40 micros is the value a snippet "
-        "used as an example; sizing in this project is far below any plausible "
-        "cap, so it rarely binds. Sensitivity run at 10."),
+    "eval_max_contracts": Rule(6, "ARAM",
+        "Aram, 2026-09-30: max 60 micros = 6 minis. Applies to the evaluation."),
     "micros_per_mini": Rule(10, "SNIPPET", "'Ten (10) micro contracts equal one (1) standard contract.'"),
-    "eval_fee_usd": Rule(None, "UNKNOWN",
-        "Price varies with promotions. The simulator reports the BREAK-EVEN fee "
-        "instead, so no fee has to be assumed."),
-
+    "eval_fee_usd": Rule(round(18 * 1.30, 2), "ARAM",
+        "Aram, 2026-09-30: about GBP 18 per evaluation (promotional pricing). "
+        "Converted at an assumed 1.30 USD/GBP."),
     # --------------------------------------------------------- performance (PA)
     "pa_threshold_lock": Rule(50_100.0, "SNIPPET",
         "'In Performance Accounts, trailing stops once the Intraday Threshold "
@@ -101,13 +98,13 @@ RULES = {
         "liquidates positions and 'pauses trading for the remainder of the "
         "session. The account remains active.'"),
     "pa_dll_is_failure": Rule(False, "SNIPPET", "Pause, not failure. Resets at next session open."),
-    "pa_level1_max_contracts": Rule(2, "UNKNOWN",
-        "A snippet pairs 'max position size of 2 contracts' with the $1,000 DLL "
-        "but does not say which level. Levels are assigned from the prior "
-        "session's closing balance, top level for 50K is Level 4; the level table "
-        "was not recoverable. Modelled conservatively as Level-1 limits forever."),
-    "pa_min_qualifying_days": Rule(5, "SNIPPET",
-        "'a minimum of 5 trading days with a minimum of $200 profit for each of the days.'"),
+    "pa_level1_max_contracts": Rule(6, "ARAM",
+        "Aram, 2026-09-30: max 60 micros. Applied to the PA as well. Apex's "
+        "scaling-level table may cap size lower at first; not recovered."),
+    "pa_min_qualifying_days": Rule(5, "ARAM",
+        "Aram, 2026-09-30: 5 winning days after passing before a payout can be "
+        "requested. Matches the official snippet ('a minimum of 5 trading days "
+        "with a minimum of $200 profit')."),
     "pa_qualifying_day_profit": Rule(200.0, "SNIPPET", "See pa_min_qualifying_days."),
     "pa_safety_net": Rule(52_100.0, "SNIPPET",
         "'drawdown limit plus $100. Only profit above the safety net is eligible "
@@ -118,15 +115,16 @@ RULES = {
         "P&L / net P&L since last payout must be < 0.50. Whether 'total profit' "
         "is net or gross of losing days is not stated — net is the stricter one."),
     "pa_min_payout": Rule(500.0, "SNIPPET", "'The minimum payout amount is $500 per request.'"),
-    "pa_max_payout": Rule(None, "UNKNOWN",
-        "Per-request cap not found. Modelled as uncapped; a cap would only "
-        "lower the money, not survival."),
+    "pa_max_payout": Rule(2_000.0, "ARAM",
+        "Aram, 2026-09-30: model payouts as capped at $2,000 per request. Profit "
+        "above the cap stays in the account for the next request."),
     "pa_max_payouts": Rule(6, "SNIPPET",
         "'Each Performance Account may receive a maximum of six approved payouts.' "
         "After six the PA is closed."),
     "pa_split": Rule(1.00, "SNIPPET", "100% payout split."),
-    "pa_activation_fee_usd": Rule(0.0, "UNKNOWN", "Not found. Assumed zero; ask."),
-
+    "pa_activation_fee_usd": Rule(round(40 * 1.30, 2), "ARAM",
+        "Aram, 2026-09-30: about GBP 40, paid once on passing. Converted at an "
+        "assumed 1.30 USD/GBP."),
     # ------------------------------------------------------------ session rules
     "trading_day": Rule("18:00-16:59 ET", "SNIPPET",
         "'A trading day is defined from 6 PM ET one day to 4:59 PM ET the next day.'"),
@@ -162,7 +160,9 @@ class ApexConfig:
     pa_safety_net: float = RULES["pa_safety_net"].value
     pa_consistency: float = RULES["pa_consistency"].value
     pa_min_payout: float = RULES["pa_min_payout"].value
-    pa_max_payout: float = float("inf")
+    pa_max_payout: float = RULES["pa_max_payout"].value
+    eval_fee: float = RULES["eval_fee_usd"].value
+    activation_fee: float = RULES["pa_activation_fee_usd"].value
     pa_max_payouts: int = RULES["pa_max_payouts"].value
 
     def with_dd(self, dd: float) -> "ApexConfig":

@@ -244,6 +244,12 @@ def test_lifecycle():
     # 52,200 -> 51,200 -> 50,200 -> 50,050 breaches the locked 50,100
     check("PA threshold locks at $50,100", r["pa_breached"], r)
 
+    # payout capped at $2,000; the rest stays for the next request
+    it = iter(pass3 + [day([[1000, 0, 1000]])] * 5 + [day()] * 50)
+    r = SIM.simulate_path(it, cfg, ctl)
+    # balance 55,000 -> 2,900 above the net, but only 2,000 may be withdrawn
+    check("payout capped at $2,000", r["payouts"] == [2000.0], r["payouts"])
+
     # six payouts close the PA
     it = iter(pass3 + ([day([[600, 0, 600]])] * 5) * 40)
     r = SIM.simulate_path(it, cfg, ctl)

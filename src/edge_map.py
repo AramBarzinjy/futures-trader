@@ -55,7 +55,7 @@ def main():
     n = 300 if a.quick else 1500
     jobs = [(sr, sg, p, dd, n) for sr, sg, p, dd in
             itertools.product(SHARPE, SIGMA, FREQ, ["2000"])]
-    jobs += [(sr, sg, 1.0, "2500", n) for sr, sg in itertools.product(SHARPE, SIGMA)]
+    # the $2,500 drawdown alternative was retired when Aram confirmed $2,000
     with ProcessPoolExecutor() as ex:
         rows = list(ex.map(cell, jobs))
     df = pd.DataFrame(rows)
@@ -72,9 +72,9 @@ def main():
             t = d.pivot(index="sharpe_active_day", columns="sigma_day", values=col)
             print(f"\n{lab}   rows: daily Sharpe per active day   cols: daily sigma $")
             print(t.round(2 if col != "breakeven_fee" else 0).to_string())
-    d = df[df.dd == "2500"]
-    print("\n=== $2,500 trailing (the conflicting alternative), every session ===")
-    print(d.pivot(index="sharpe_active_day", columns="sigma_day", values="breakeven_fee").round(0).to_string())
+    d = df[(df.dd == "2000") & (df.p_trade == 1.0)]
+    print("\nnet value per attempt after the ~GBP 18 eval and ~GBP 40 activation fees, $")
+    print(d.pivot(index="sharpe_active_day", columns="sigma_day", values="net_ev_per_attempt").round(0).to_string())
 
 
 if __name__ == "__main__":

@@ -38,14 +38,24 @@ import hypotheses_f as HF        # noqa: E402
 ROOT = os.environ.get("NQ_ROOT", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # ------------------------------------------------------------ registered split
-DATA_START = "2021-10-01"      # first session that can be traded (warm-up data precedes it)
-HOLDOUT_START = "2025-10-01"   # everything from here on is the final holdout
+# Amendment A (PREREGISTRATION-APEX.md section 12): the data Aram supplied is MNQ
+# 2024-02-01 -> 2026-09-29, not NQ 2021 -> 2026. The split was re-drawn on that
+# window BEFORE any hypothesis was run on it. The original split is kept below.
+DATA_START = "2024-02-01"
+HOLDOUT_START = "2026-01-01"   # everything from here on is the final holdout
 FOLDS = [  # (dev_start, dev_end, val_start, val_end), inclusive session dates
+    ("2024-02-01", "2024-12-31", "2025-01-01", "2025-03-31"),
+    ("2024-04-01", "2025-03-31", "2025-04-01", "2025-06-30"),
+    ("2024-07-01", "2025-06-30", "2025-07-01", "2025-09-30"),
+    ("2024-10-01", "2025-09-30", "2025-10-01", "2025-12-31"),
+]
+ORIGINAL_SPLIT = dict(holdout="2025-10-01", folds=[
     ("2021-10-01", "2023-09-30", "2023-10-01", "2024-03-31"),
     ("2022-04-01", "2024-03-31", "2024-04-01", "2024-09-30"),
     ("2022-10-01", "2024-09-30", "2024-10-01", "2025-03-31"),
     ("2023-04-01", "2025-03-31", "2025-04-01", "2025-09-30"),
-]
+])
+NO_ES_CHECK = {"H3_nq_es_rel", "H7_delta_divergence", "H8_delta_imbalance"}
 MIN_DEV_TRADES = 30
 BH_Q = 0.10
 N_REGISTERED = len(HF.REGISTRY)   # BH denominator: untested hypotheses count as p = 1
@@ -113,6 +123,10 @@ def load(holdout=False):
     """Full-size NQ, ES and NQ aggressor delta. Holdout sessions removed unless unlocked."""
     nq = _read("nq")
     if nq is None:
+        nq = _read("mnq")          # Amendment A: MNQ volume stands in for NQ
+        if nq is not None:
+            print("using data/mnq_cont_1m.pkl (MNQ) in place of full-size NQ — Amendment A")
+    if nq is None:
         raise SystemExit("data/nq_cont_1m.pkl missing. Full-size NQ is required (signals use "
                          "full-size volume). Fetch it:\n"
                          "  python3 src/databento_fetch.py --start 2021-06-01 --end <latest> NQ ES\n"
@@ -123,7 +137,18 @@ def load(holdout=False):
     return _assemble(nq, es, delta, holdout)
 
 
+def _complete_sessions(df):
+    """Drop a trailing session that the data stops part-way through."""
+    n = df.groupby("session").size()
+    last = n.index.max()
+    if n[last] < 0.5 * n.median():
+        df = df[df.session != last]
+    return df
+
+
 def _assemble(nq, es, delta, holdout):
+    nq = _complete_sessions(nq)
+    es = _complete_sessions(es) if es is not None else None
     cut = pd.Timestamp(HOLDOUT_START)
     if not holdout:
         nq = nq[nq.session < cut]
@@ -382,8 +407,16 @@ def run_all(nq, es, mode, ledger, out):
     for g in gates:
         if g not in G:
             G[g] = False
-    G["finalist"] = G.BH & G[gates].fillna(False).all(axis=1) & \
-        G.get("G8_market", pd.Series([None] * len(G))).map(lambda x: x is not False)
+    if "G8_market" not in G:
+        G["G8_market"] = None
+    core = G.BH & G[gates].fillna(False).astype(bool).all(axis=1)
+    g8 = G.G8_market.map(lambda x: x if isinstance(x, bool) else None)
+    need_es = ~G.hypothesis.isin(NO_ES_CHECK)
+    # G8 is required where it applies. With no ES data it is pending, and a candidate
+    # that passes everything else is only PROVISIONAL: it may not touch the holdout.
+    G["G8_pending"] = need_es & g8.isna()
+    G["finalist"] = core & ((g8 == True) | ~need_es)          # noqa: E712
+    G["provisional"] = core & G.G8_pending
     os.makedirs(out, exist_ok=True)
     G.to_csv(os.path.join(out, f"gate_{mode}.csv"), index=False)
     # lifecycle for every hypothesis with OOS trades, finalist or not; G9 decides finalists
@@ -399,10 +432,15 @@ def run_all(nq, es, mode, ledger, out):
         G.loc[G.hypothesis == h, "best_uplift"] = best.uplift
         controls[h] = dict(micros=int(best.micros), int_dll=best.int_dll, day_cap=best.day_cap)
     G["finalist"] = G.finalist & G.G9_uplift
+    G["provisional"] = G.provisional & G.G9_uplift
     G.to_csv(os.path.join(out, f"gate_{mode}.csv"), index=False)
     fin = G[G.finalist].hypothesis.tolist()
     ledger.add(mode=mode, kind="run_complete", finalists=fin,
+               provisional=G[G.provisional].hypothesis.tolist(),
                bh_passed=G[G.BH].hypothesis.tolist())
+    if G.provisional.any():
+        print(f"PROVISIONAL (pending the ES check, may not touch the holdout): "
+              f"{G[G.provisional].hypothesis.tolist()}")
     print(f"\nBH survivors: {G[G.BH].hypothesis.tolist()}   finalists: {fin}")
     if mode == "registered":
         with open(os.path.join(out, "finalists.json"), "w") as f:
@@ -464,8 +502,8 @@ def main():
         allg = []
         for seed in range(a.seed0, a.seed0 + a.synthetic):
             print(f"\n=== synthetic dataset {seed} (no edge by construction) ===")
-            n_sess = len(pd.bdate_range("2021-06-01", HOLDOUT_START))
-            nq = synth.make("2021-06-01", n_sess, seed=100 + seed, with_delta=True)
+            n_sess = len(pd.bdate_range(DATA_START, HOLDOUT_START))
+            nq = synth.make(DATA_START, n_sess, seed=100 + seed, with_delta=True)
             es = synth.make_es(nq, seed=200 + seed)
             nq = nq[nq.session < pd.Timestamp(HOLDOUT_START)].reset_index(drop=True)
             es = es[es.session < pd.Timestamp(HOLDOUT_START)].reset_index(drop=True)

@@ -183,6 +183,8 @@ def run(sampler, cfg: AR.ApexConfig, ctl: Controls, n: int = 2000, seed: int = 0
         ev_payout_per_attempt=pay_total.mean(),     # $ withdrawn per evaluation bought
         breakeven_fee=pay_total.mean(),             # fee at which an attempt is EV-neutral
         breakeven_se=pay_total.std(ddof=1) / np.sqrt(n),
+        # what an attempt is worth after the evaluation fee and, if passed, activation
+        net_ev_per_attempt=pay_total.mean() - cfg.eval_fee - passed.mean() * cfg.activation_fee,
     )
     return s
 

@@ -273,3 +273,68 @@ Given the project's record, three clean negatives in five investigations, and
 the thinness of published intraday effects in index futures net of costs, **the
 most likely result is no finalist.** That result will be reported as the
 finding.
+
+---
+
+## 12. Amendment A — the data actually supplied (written before any hypothesis ran on it)
+
+On 2026-09-30 Aram supplied one Databento file:
+`glbx-mdp3-20240201-20260929.ohlcv-1m.csv.zst`. Before anything was computed on
+it, it was checked for symbols, date range, roll schedule and session count only.
+It holds **MNQ only**, all contract months, **2024-02-01 → 2026-09-29**. That
+comes to 689 sessions and 12 clean quarterly rolls. It does not match §2 in four
+ways, and the protocol is amended as follows:
+
+| §2 said | Supplied | Amendment |
+|---|---|---|
+| Full-size NQ | MNQ | MNQ's own volume stands in for NQ's. MNQ trades 80–170M contracts a quarter in this window, so relative-volume signals (H1, H2) are readable. This is weaker than full-size, and the report says so. |
+| 5 years, 2021-10 → | 2.7 years, 2024-02 → | The split is re-drawn below. |
+| ES bars | none | H3 cannot run and G8 cannot be evaluated. |
+| NQ aggressor delta | none | H7 and H8 cannot run. |
+
+**Hypotheses run: H1, H2, H4, H5, H6.** H3, H7 and H8 are recorded as
+untestable with the supplied data. The BH denominator stays at 8.
+
+**The re-drawn split.** It keeps four rolling folds and a separate final holdout:
+
+| Fold | Development | Validation |
+|---|---|---|
+| 1 | 2024-02-01 → 2024-12-31 | 2025-01-01 → 2025-03-31 |
+| 2 | 2024-04-01 → 2025-03-31 | 2025-04-01 → 2025-06-30 |
+| 3 | 2024-07-01 → 2025-06-30 | 2025-07-01 → 2025-09-30 |
+| 4 | 2024-10-01 → 2025-09-30 | 2025-10-01 → 2025-12-31 |
+| **Holdout** | — | **2026-01-01 → 2026-09-29** |
+
+This gives about 258 stitched out-of-sample sessions and about 190 holdout
+sessions. The first development window includes the warm-up period, where
+lookbacks are still filling and signals cannot fire.
+
+**Power, stated now so a weak result cannot be explained away later.** With
+about 250 out-of-sample sessions, 80% power at the BH threshold needs a daily
+Sharpe of about **0.20** (≈ 3.1 annualised), against about 0.14 in the original
+design. The holdout's 80% power at t = 1.5 needs about **0.17**. §8 shows
+edges of that size are worth having. Smaller real edges will be missed, and the
+result will be reported as "not detected", not as "absent".
+
+**G8 is pending, not waived.** A hypothesis that passes G1–G7, BH and G9 but
+has no ES check is **provisional**. It may not touch the holdout until ES data
+for the same window is fetched and G8 is run on the frozen selections.
+
+**Contamination.** This whole window, including the new holdout, lies inside
+data the project has used before (investigations b and c, 2022-08 → 2026-09).
+§0 excluded those hypotheses, and none is re-tested here. Forward paper trading
+from 2026-10-01 remains the only clean test.
+
+**Rules confirmed by Aram the same day, applied before the run** (`src/apex_rules.py`):
+
+- firm: Apex Trader Funding
+- drawdown: $2,000
+- contract cap: 60 micros, applied in the evaluation and the PA
+- payouts: 5 winning days after passing before a request, capped at $2,000 per request
+- evaluation fee: about £18
+- activation fee: about £40
+
+Economic results now also report expected value per attempt net of both fees
+(1.30 USD/GBP assumed).
+
+The hypothesis grid is unchanged. `REGISTRY_SHA` still matches.
