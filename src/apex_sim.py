@@ -43,6 +43,7 @@ class Controls:
     int_dll: float = float("inf")   # internal daily loss limit, $ (positive number)
     day_cap: float = float("inf")   # internal daily profit cap, $
     payout_all: bool = True         # withdraw everything above the safety net when eligible
+    pa_micros: int = 0              # size in the funded account; 0 = same as the evaluation
 
 
 # A day is a list of trades; a trade is an (n,3) float array of per-bar
@@ -55,14 +56,18 @@ def _play_day(day: Day, eq0: float, thr: float, lock: float, dd: float, m: int,
               dll: float, cap: float):
     """Play one day. Returns (end_equity, threshold, breached, day_pnl).
 
+    The threshold trails the ALL-TIME peak, so it only ever rises: a new high
+    lifts it to min(high - dd, lock), and nothing lowers it. (An earlier version
+    tracked the peak from the day's open, which let the threshold fall after a
+    losing day. Fixed 2026-10-01; see DEVIATIONS.md.)
+
     `dll` is the tighter of the firm's and the internal daily loss limit (inf if
     none). Hitting it flattens at the limit and ends the day without failing.
     Hitting `cap` means no new trades; an open trade is allowed to finish.
-    Within a bar the threshold is tested before the daily loss limit, which is
-    the pessimistic order.
+    Within a bar the favourable extreme prints first and the threshold is tested
+    before the daily loss limit: both are the pessimistic order.
     """
     eq = eq0
-    peak = eq0
     for tr in day:
         if eq - eq0 >= cap or eq - eq0 <= -dll:
             break
@@ -70,19 +75,17 @@ def _play_day(day: Day, eq0: float, thr: float, lock: float, dd: float, m: int,
         for fav, adv, cl in tr:
             hi = base + fav * m
             lo = base + adv * m
-            if hi > peak:                      # favourable extreme prints first
-                peak = hi
-                if thr < lock:
-                    thr = min(peak - dd, lock)
+            cand = min(hi - dd, lock)
+            if cand > thr:
+                thr = cand
             if lo <= thr:
                 return thr, thr, True, thr - eq0
             if lo - eq0 <= -dll:
                 return eq0 - dll, thr, False, -dll
         eq = base + tr[-1][2] * m
-        if eq > peak:
-            peak = eq
-            if thr < lock:
-                thr = min(peak - dd, lock)
+        cand = min(eq - dd, lock)
+        if cand > thr:
+            thr = cand
     return eq, thr, False, eq - eq0
 
 
@@ -119,6 +122,8 @@ def simulate_path(days, cfg: AR.ApexConfig, ctl: Controls, max_days: int = 750):
         return out
 
     # --------------------------------------------------- performance account
+    if ctl.pa_micros:
+        m = ctl.pa_micros
     if m > cfg.pa_max_micros:
         # Size is illegal in the PA at Level 1: trade the cap instead.
         m = cfg.pa_max_micros

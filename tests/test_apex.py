@@ -213,6 +213,18 @@ def test_lifecycle():
     r = SIM.simulate_path(it, cfg, ctl)
     check("same loss without the run-up survives", r["eval_fail"] == "timeout", r)
 
+    # the threshold never falls: +1,000, then -800, then a day that rises +300 and
+    # falls -1,100. All-time peak 51,000 -> threshold 49,000. Day 3 low is
+    # 50,200 - 1,100 = 49,100 > 49,000, so no breach, and the floor stays 49,000.
+    eq, thr = 50_000.0, 48_000.0
+    for d_ in (day([[1000, 0, 1000]]), day([[0, -800, -800]]), day([[300, -900, -900]])):
+        eq, thr, br, _ = SIM._play_day(d_, eq, thr, cfg.eval_lock, cfg.dd, 1, float("inf"), float("inf"))
+    check("trailing threshold never moves down across days", thr == 49_000.0 and not br, (eq, thr, br))
+    # and a day whose run-up stays below the old peak cannot lower it
+    eq, thr, br, _ = SIM._play_day(day([[100, -350, -350]]), 49_300.0, 49_000.0, cfg.eval_lock, cfg.dd, 1,
+                                   float("inf"), float("inf"))
+    check("dip below the all-time-peak floor breaches", br, (eq, thr, br))
+
     # a touch of +3,000 intraday that closes lower does not pass
     it = iter([day([[3100, 0, 2500]])] + [day()] * 30)
     r = SIM.simulate_path(it, cfg, ctl)

@@ -233,3 +233,32 @@ $2,000. Payouts need 5 winning days. The evaluation fee is about £18 and the
 activation fee about £40. Previously the payout was uncapped, the PA cap was
 20 micros and fees were zero. The edge map and the LVN replay are re-run under
 the new rules. The $2,500 rows are dropped.
+
+### 8. Simulator bug: the trailing threshold could move DOWN (found and fixed 2026-10-01)
+
+`apex_sim._play_day` measured the peak from each day's opening equity rather
+than the all-time peak. After a losing day, the next day's first gain could
+"reset" the threshold lower, which Apex never does. It was found while building
+`eval_plan.py`, when a coin-flip plan showed failures dominated by timeouts. A
+day-by-day trace showed the threshold falling from 48,980 to 48,407.
+
+**What it affected:** every lifecycle number (`edge_map`, `apex_lvn`, the G9
+column of investigation (f), both null calibrations, the first `eval_plan` run).
+All were optimistic.
+
+**What it did not affect:** gates G1–G8 and BH, which do not use the simulator.
+The verdict of investigation (f) is unchanged: no finalist, no BH survivor.
+
+**Fix:** the threshold now only rises. `tests/test_apex.py` has two new tests,
+and one of them was confirmed to fail on the old code (48,500 vs 49,000).
+
+**Re-run:**
+- `edge_map`: zero-edge pass 14% → 12%, net per attempt $123 → $43.
+- `apex_lvn`: unchanged, because its winners never dip.
+- Registered `wf.py`: re-run with the same deterministic G1–G8. Only G9 values
+  changed. The ledger now holds both runs, and the second is the valid one.
+- Amendment A null calibration: re-run, still 0 survivors.
+- `eval_plan`: zero-skill pass 37% → 15%.
+
+The older null calibration on the original split (`null_calibration/`) was not
+re-run. Its G9 column is pre-fix and is superseded.

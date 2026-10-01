@@ -438,17 +438,19 @@ Trades every session, $2,000 trail, size chosen optimally:
 
 | Daily Sharpe | P(pass) | P(2+ payouts \| pass) | Net per attempt after both fees |
 |---|---|---|---|
-| 0 (no edge) | 14% | 17% | $123 |
-| 0.10 (≈1.6 annualised) | 25% | 40% | $690 |
-| 0.20 | 41% | 65% | $2,335 |
-| 0.50 (≈8 annualised) | 78% | 94% | $7,866 |
+| 0 (no edge) | 12% | 10% | $43 |
+| 0.10 (≈1.6 annualised) | 23% | 21% | $316 |
+| 0.20 | 37% | 46% | $1,400 |
+| 0.50 (≈8 annualised) | 75% | 86% | $6,922 |
+
+(Corrected 2026-10-01 after the falling-threshold bug, DEVIATIONS.md §8.)
 
 - **The optimal daily σ is about $500**, a quarter of the drawdown, at every edge
   level. Too small and the 30-day window runs out; too large and the trail kills it.
 - **The brief's targets are unreachable.** A 70% pass rate and under 30% funded
   breach need a daily Sharpe near 0.5.
-- **A zero-edge strategy still nets about $123 per attempt after fees** in this
-  model, because the account is a call option. "Payouts exceed the fee" proves nothing. Gate G9 makes
+- **A zero-edge strategy nets about $43 per attempt after fees** in this
+  model, which is near zero. The account is a call option, but a thin one. "Payouts exceed the fee" proves nothing. Gate G9 makes
   a strategy beat its own de-meaned copy.
 - **A strategy trading on 25% of sessions passes ≤ 10% of the time, at any edge.**
 
@@ -476,12 +478,39 @@ G1–G8. Summary: `results/apex/null_calibration/summary.csv`.
 | H6 overnight drift | 256 | +10.43 | 1.00 | 100% | 1/4 | fail |
 | H3, H7, H8 | — | — | — | — | — | untestable (no ES, no order flow) |
 
-G9 fired for H2 and H6. As the null calibration warned, it is permissive alone:
+G9 fired for H2 and H6, and still did after the simulator fix. As the null calibration warned, it is permissive alone:
 it takes the best of 90 size settings. On records carried by a few days it
 passes easily, and it is meaningless without G1–G8. Files:
 `results/apex/gate_registered.csv`, `lifecycle_registered_*.csv`,
 `ledger.jsonl`. The null calibration on the amended split
 (`null_calibration_amendA/`) found 0 survivors in 32 tests, with a best t of 1.12.
+
+### The evaluation playbook (`EVAL_PLAYBOOK.md`, `src/eval_plan.py`)
+
+Aram asked for the best route to passing and a first payout *now*. With no
+validated signal, the playbook fixes everything except direction, and
+optimises it for Apex's rules on real MNQ paths from 2024-02 to 2025-12. The
+2026 holdout is untouched. Direction is a coin flip, plus an optional "skill"
+that picks the better side on a fraction of days. Each bracket's sample mean is
+neutralised to minus costs, so no in-sample drift is planned on.
+
+**The plan:**
+- one MNQ trade a day at 09:31 ET
+- a 60-point stop and a 60-point target, as a bracket
+- flat by 15:55 ET
+- 5 micros in the evaluation, 2 in the PA
+
+It ranks first or near first in every scenario.
+
+| Win rate | Pass in 30 days | Payout per attempt | £ fees per first payout |
+|---|---|---|---|
+| ~50% (no skill) | 15% | 3% | ~£780 |
+| ~55% | 26% | 13% | ~£210 |
+| ~60% | 40% | 33% | ~£100 |
+
+**The gate is Aram's logged directional win rate after 30 calls.** At 50% or
+below, stop buying evaluations. Files: `results/apex/eval_plan*.csv`, and
+`trade_log.csv` for the log.
 
 ### Aram's LVN method under Apex (`src/apex_lvn.py`)
 
@@ -597,6 +626,7 @@ micros.
 | `edge_map.py` | What daily Sharpe and σ the Apex rules demand, with no market data |
 | `apex_lvn.py` | Aram's 24 LVN trades replayed under Apex rules |
 | `synth.py` | Edge-free synthetic Globex bars for tests and the null calibration |
+| `eval_plan.py` | Best size/bracket/limits for Apex with no edge, on real MNQ paths; `--final` for the chosen plan |
 | `../tests/test_apex.py` | Fill rules, look-ahead canary on every variant, Apex state machine |
 
 Run order for the live work:
@@ -656,6 +686,9 @@ This project stayed honest because of these rules. Keep them.
 ---
 
 ## 8. Open items
+
+00. **Aram runs `EVAL_PLAYBOOK.md` and logs every call in `trade_log.csv`.**
+    After 30 calls, compute the win rate and apply the playbook's decision rule.
 
 0. ~~**Investigation (f) needs data.**~~ **DONE — negative, see §2(f) and §4d.**
    If ES bars and NQ order flow are ever fetched, H3/H7/H8 could be run under
