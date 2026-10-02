@@ -508,6 +508,12 @@ It ranks first or near first in every scenario.
 | ~55% | 26% | 13% | ~£210 |
 | ~60% | 40% | 33% | ~£100 |
 
+**Dynamic sizing was tested and rejected** (`PREREGISTRATION-SIZING.md`,
+`src/sizing_test.py`). Four cushion and target-aware rules lost to fixed 5
+micros in all six cells (3 skill levels × 2024/2025 halves). Fixed 5 was also
+stable across the halves: 3.2% / 3.2%, 13.9% / 13.4%, 32.0% / 32.7%.
+`src/log_check.py` scores the log and applies the decision rule.
+
 **The gate is Aram's logged directional win rate after 30 calls.** At 50% or
 below, stop buying evaluations. Files: `results/apex/eval_plan*.csv`, and
 `trade_log.csv` for the log.
@@ -627,6 +633,8 @@ micros.
 | `apex_lvn.py` | Aram's 24 LVN trades replayed under Apex rules |
 | `synth.py` | Edge-free synthetic Globex bars for tests and the null calibration |
 | `eval_plan.py` | Best size/bracket/limits for Apex with no edge, on real MNQ paths; `--final` for the chosen plan |
+| `sizing_test.py` | Registered test of state-dependent evaluation sizing — rejected, fixed 5 stays |
+| `log_check.py` | Scores `trade_log.csv`: win rate with 95% interval, playbook decision, account room |
 | `../tests/test_apex.py` | Fill rules, look-ahead canary on every variant, Apex state machine |
 
 Run order for the live work:

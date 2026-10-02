@@ -44,6 +44,22 @@ class Controls:
     day_cap: float = float("inf")   # internal daily profit cap, $
     payout_all: bool = True         # withdraw everything above the safety net when eligible
     pa_micros: int = 0              # size in the funded account; 0 = same as the evaluation
+    size_rule: str = "fixed"        # evaluation sizing: fixed | cushion | cushion_need
+    size_f: float = 0.0             # cushion fraction of (equity - threshold) risked per day
+    size_k: float = 0.0             # cushion_need: aim to finish the target in k wins
+    risk_per_micro: float = 122.0   # $ lost per micro on a full stop (sizing input only)
+    win_per_micro: float = 118.0    # $ won per micro at the target (sizing input only)
+
+
+def eval_size(ctl: "Controls", cfg, eq: float, thr: float) -> int:
+    """Evaluation size for the next day under the registered rules (PREREGISTRATION-SIZING.md)."""
+    if ctl.size_rule == "fixed":
+        return ctl.micros
+    m = (eq - thr) * ctl.size_f / ctl.risk_per_micro
+    if ctl.size_rule == "cushion_need":
+        need = max(cfg.start + cfg.target - eq, 0.0)
+        m = min(m, math.ceil(need / ctl.size_k / ctl.win_per_micro))
+    return int(min(cfg.eval_max_micros, max(1, round(m))))
 
 
 # A day is a list of trades; a trade is an (n,3) float array of per-bar
@@ -108,6 +124,7 @@ def simulate_path(days, cfg: AR.ApexConfig, ctl: Controls, max_days: int = 750):
         day = next(days, None)
         if day is None:
             return out
+        m = eval_size(ctl, cfg, eq, thr)
         eq, thr, br, pnl = _play_day(day, eq, thr, cfg.eval_lock, cfg.dd, m,
                                      ctl.int_dll, ctl.day_cap)
         out["eval_days"] = d + 1
@@ -122,6 +139,7 @@ def simulate_path(days, cfg: AR.ApexConfig, ctl: Controls, max_days: int = 750):
         return out
 
     # --------------------------------------------------- performance account
+    m = ctl.micros
     if ctl.pa_micros:
         m = ctl.pa_micros
     if m > cfg.pa_max_micros:

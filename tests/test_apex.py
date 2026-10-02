@@ -278,6 +278,13 @@ def test_lifecycle():
     check("day cap of $700 trades two $400 trades per day -> pass on day 4",
           r["passed"] and r["eval_days"] == 4, r)
 
+    # sizing rules
+    c = SIM.Controls(size_rule="cushion", size_f=0.5)
+    check("cushion 1/2 at a fresh account is 8 micros", SIM.eval_size(c, cfg, 50_000, 48_000) == 8)
+    c = SIM.Controls(size_rule="cushion_need", size_f=0.5, size_k=3)
+    check("cushion_need caps size near the target", SIM.eval_size(c, cfg, 52_800, 50_800) == 1)
+    check("fixed rule returns the fixed size", SIM.eval_size(SIM.Controls(micros=5), cfg, 1, 0) == 5)
+
     # the drawdown alternative moves the safety net with it
     check("alt drawdown moves safety net to $52,600", AR.ALT_DD.pa_safety_net == 52_600, AR.ALT_DD)
 

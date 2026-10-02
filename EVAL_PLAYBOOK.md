@@ -34,6 +34,10 @@ whatever skill your direction call has**.
 - **Never move the stop.** Never add to the position.
 - **Don't trade more or bigger to catch up.** Bigger size was tested and makes
   things worse.
+- **Keep the size fixed.** A pre-registered test
+  (`PREREGISTRATION-SIZING.md`) tried four rules that size from the
+  drawdown cushion or the distance to target. Fixed 5 micros beat all four,
+  at every skill level, on 2024 and 2025 data separately.
 - **Each trade risks about $600 or wins about $600.** Passing takes about five
   more winning days than losing days.
 
@@ -63,8 +67,14 @@ At 1:1, a coin flip wins about 50% of trades.
 
 ## The decision rule — this is the important part
 
-1. **Log every call**, including days you don't trade, in `trade_log.csv`. Fill
-   in date, direction, entry, exit and result.
+1. **Log every call** in `trade_log.csv`, including days you don't trade.
+   - Fill in the date, direction, micros, exit reason (target, stop or time),
+     points and account (`eval-1`, `pa-1`, …).
+   - On days you don't trade, still record what the bracket would have done.
+     Those calls count toward your win rate for free.
+   - Run `python3 src/log_check.py` to see your win rate, the decision, and
+     each account's room to its floor and target. Or send me the file and I'll
+     run it.
 2. **After 30 calls**, work out your win rate. Ignore the evaluation's
    pass/fail and look only at the calls.
    - **50% or less:** stop buying evaluations. At coin-flip skill, each payout

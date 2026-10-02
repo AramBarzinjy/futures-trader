@@ -1,2 +1,2 @@
-date,call_made_before_0930_ET,direction,traded,entry,stop,target,exit,exit_reason,points,usd,account,notes
-2026-10-02,yes,long,yes,,,,,target|stop|time,,,eval-1,example row - delete
+date,call_made_before_0930_ET,direction,traded,micros,entry,stop,target,exit,exit_reason,points,usd,account,notes
+2026-10-02,yes,long,yes,5,,,,,target|stop|time,,,eval-1,example row - delete
