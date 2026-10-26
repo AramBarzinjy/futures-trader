@@ -10,7 +10,7 @@ NQ futures and sized in MNQ micros for the prop account:
   size    floor(RISK_USD / (stop distance x $2)), capped at 60 micros
   window  no new entry after 15:30 ET, flat by 15:55 ET
 
-Every change of state is texted once through Twilio: range set, triggered,
+Every change of state is texted once (ntfy push or Twilio SMS): range set, triggered,
 target hit, stop hit, flatten, no trade. Nothing is ever ordered. Prices come
 from Yahoo's free NQ=F chart, which runs about 10 minutes behind CME, so each
 signal says to check the live Tradovate chart before acting.
@@ -20,7 +20,12 @@ signal says to check the live Tradovate chart before acting.
     python3 src/orb_alert.py replay 2026-10-23  # a past day, printed, no texts
     python3 src/orb_alert.py test             # one test text
 
-Needs TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM and SMS_TO.
+Alerts go out one of two ways:
+  NTFY_TOPIC   free push notification via ntfy.sh -- no account, no card. Install
+               the ntfy app, subscribe to the same topic. Pick a long random name:
+               anyone who knows it can read the alerts. Used when set.
+  Twilio SMS   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM and SMS_TO
+               (trial accounts refuse free text, so this needs a paid account).
 """
 import argparse
 import base64
@@ -134,10 +139,22 @@ def evaluate(bars, day, now):
     return events, False
 
 
+def send_ntfy(topic, body):
+    req = urllib.request.Request("https://ntfy.sh/" + urllib.parse.quote(topic), data=body.encode("utf-8"))
+    req.add_header("Title", "NQ ORB alert")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            print("sent %s: %s" % (json.load(r).get("id"), body))
+    except urllib.error.HTTPError as e:
+        raise SystemExit("ntfy refused the alert (HTTP %d): %s" % (e.code, e.read().decode("utf-8", "replace")))
+
+
 def send_sms(body, dry):
     if dry:
         print("SMS> " + body)
         return
+    if os.environ.get("NTFY_TOPIC"):
+        return send_ntfy(os.environ["NTFY_TOPIC"], body)
     sid, tok = os.environ["TWILIO_ACCOUNT_SID"], os.environ["TWILIO_AUTH_TOKEN"]
     data = urllib.parse.urlencode({"To": os.environ["SMS_TO"], "From": os.environ["TWILIO_FROM"],
                                    "Body": body}).encode()
