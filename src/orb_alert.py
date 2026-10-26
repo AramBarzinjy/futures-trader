@@ -11,11 +11,17 @@ NQ futures and sized in MNQ micros for the prop account:
   window  no new entry after 15:30 ET, flat by 15:55 ET
 
 Every change of state is texted once (ntfy push or Twilio SMS): range set, triggered,
-target hit, stop hit, flatten, no trade. Nothing is ever ordered. Prices come
-from Yahoo's free NQ=F chart, which runs about 10 minutes behind CME, so each
-signal says to check the live Tradovate chart before acting.
+target hit, stop hit, flatten, no trade. Nothing is ever ordered.
 
-    python3 src/orb_alert.py run              # today, polls until the day is done
+Prices come from Yahoo, free. Its NQ=F chart runs 10 minutes behind CME, but
+QQQ (the Nasdaq-100 ETF) is live and moves with NQ, so by default the signal is
+read off QQQ and every level is converted to NQ points at the day's NQ/QQQ
+ratio (QQQ x ~41). Over a month of 5-minute bars that conversion was typically
+within 1 NQ point of the real price and nearly always within 3, so each alert
+still says to check the live Tradovate chart. --source nq uses NQ=F directly.
+
+    python3 src/orb_alert.py run              # today, polls until the day is done (live QQQ)
+    python3 src/orb_alert.py run --source nq  # same, on 10-minute-delayed NQ=F
     python3 src/orb_alert.py run --dry-run    # same, prints instead of texting
     python3 src/orb_alert.py replay 2026-10-23  # a past day, printed, no texts
     python3 src/orb_alert.py test             # one test text
@@ -42,6 +48,7 @@ from zoneinfo import ZoneInfo
 
 NY = ZoneInfo("America/New_York")
 SYMBOL = "NQ=F"
+PROXY = "QQQ"
 TICK = 0.25
 USD_PER_POINT = 2.0           # MNQ
 MAX_MICROS = 60               # 6 NQ = 60 MNQ, the firm's cap
@@ -51,12 +58,14 @@ OPEN, RANGE_END = dt.time(9, 30), dt.time(9, 45)
 LAST_ENTRY, FLAT, CLOSE = dt.time(15, 30), dt.time(15, 55), dt.time(16, 0)
 BAR = 300
 STATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "trader", "orb_state.json")
-DELAY_NOTE = "Yahoo data ~10 min late: check Tradovate first."
+NOTES = {"nq": "Yahoo data ~10 min late: check Tradovate first.",
+         "qqq": "Live via QQQ, converted to NQ: check Tradovate first."}
 
 
-def fetch_bars(rng="1d"):
-    url = ("https://query2.finance.yahoo.com/v8/finance/chart/%s?range=%s&interval=5m"
-           % (urllib.parse.quote(SYMBOL), rng))
+def fetch_bars(rng="1d", symbol=SYMBOL):
+    # Pre- and post-market bars too, so QQQ overlaps NQ=F before the open.
+    url = ("https://query2.finance.yahoo.com/v8/finance/chart/%s?range=%s&interval=5m&includePrePost=true"
+           % (urllib.parse.quote(symbol), rng))
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
     with urllib.request.urlopen(req, timeout=30) as r:
         res = json.load(r)["chart"]["result"][0]
@@ -68,6 +77,30 @@ def fetch_bars(rng="1d"):
             continue
         bars.append({"t": dt.datetime.fromtimestamp(ts, NY), "o": o, "h": h, "l": l, "c": c})
     return bars
+
+
+def proxy_bars(rng="1d"):
+    """Live QQQ bars rescaled to NQ points.
+
+    The scale is the median NQ/QQQ close ratio over that day's bars present in
+    both series from 08:00 ET on; NQ=F lags 10 minutes, so early in the session
+    this leans on pre-market bars. A day with no overlap borrows the last
+    earlier day's ratio. The ratio drifts a few NQ points a day, so it is never
+    carried further than that."""
+    qqq, nq = fetch_bars(rng, PROXY), {b["t"]: b["c"] for b in fetch_bars(rng)}
+    by_day = {}
+    for b in qqq:
+        if b["t"] in nq and dt.time(8, 0) <= b["t"].time() < CLOSE:
+            by_day.setdefault(b["t"].date(), []).append(nq[b["t"]] / b["c"])
+    out, ratio = [], None
+    for b in qqq:
+        r = by_day.get(b["t"].date())
+        if r:
+            ratio = sorted(r)[len(r) // 2]
+        if ratio is None:
+            continue
+        out.append(dict(b, **{k: round_tick(b[k] * ratio) for k in "ohlc"}))
+    return out
 
 
 def floor_tick(x):
@@ -82,7 +115,7 @@ def fmt(x):
     return "{:,.2f}".format(x)
 
 
-def evaluate(bars, day, now):
+def evaluate(bars, day, now, note=NOTES["nq"]):
     """Every event the day's bars imply so far, as (key, text) pairs, in order.
     A bar counts only once the next bar exists (or the session has moved past it)."""
     session = [b for b in bars if b["t"].date() == day and OPEN <= b["t"].time() < CLOSE]
@@ -117,7 +150,7 @@ def evaluate(bars, day, now):
                    "NQ BUY signal %s ET. Entry %s, stop %s, target %s (2R). %d MNQ = $%.0f risk. "
                    "Bracket in Tradovate, flat by 15:55. %s"
                    % (t.strftime("%H:%M"), fmt(entry), fmt(stop), fmt(target), micros,
-                      micros * risk * USD_PER_POINT, DELAY_NOTE)))
+                      micros * risk * USD_PER_POINT, note)))
     for b in after:
         if b["t"] <= trig["t"]:
             continue
@@ -194,7 +227,7 @@ def run(a):
     while True:
         now = dt.datetime.now(NY)
         try:
-            events, finished = evaluate(fetch_bars(), day, now)
+            events, finished = evaluate(load_bars(a.source), day, now, NOTES[a.source])
         except (urllib.error.URLError, OSError, KeyError, ValueError, TypeError) as e:
             print("%s data error: %s" % (now.strftime("%H:%M:%S"), e))
             events, finished = [], False
@@ -214,10 +247,14 @@ def run(a):
         time.sleep(a.every)
 
 
+def load_bars(source, rng="1d"):
+    return proxy_bars(rng) if source == "qqq" else fetch_bars(rng)
+
+
 def replay(a):
     day = dt.date.fromisoformat(a.day)
     end = dt.datetime.combine(day, dt.time(23, 59), NY)
-    events, _ = evaluate(fetch_bars("1mo"), day, end)
+    events, _ = evaluate(load_bars(a.source, "1mo"), day, end, NOTES[a.source])
     if not events:
         print("No session data for %s." % day)
     for _, text in events:
@@ -234,6 +271,9 @@ def main(argv=None):
     r.add_argument("--every", type=float, default=60, help="seconds between checks (default 60)")
     rp = sub.add_parser("replay", help="print the texts a past day would have sent")
     rp.add_argument("day", help="YYYY-MM-DD, within the last month")
+    for sp in (r, rp):
+        sp.add_argument("--source", choices=("qqq", "nq"), default="qqq",
+                        help="qqq: live QQQ converted to NQ (default); nq: NQ=F, 10 minutes late")
     t = sub.add_parser("test", help="send one test text")
     t.add_argument("--dry-run", action="store_true")
     a = p.parse_args(argv)
