@@ -11,3 +11,6 @@ data/*.parquet
 
 # Local secrets
 .env
+
+# Day-trader skill pack runtime state (config holds personal contact details)
+trader/
