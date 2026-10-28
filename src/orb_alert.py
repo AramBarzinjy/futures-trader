@@ -231,13 +231,21 @@ def run(a):
         except (urllib.error.URLError, OSError, KeyError, ValueError, TypeError) as e:
             print("%s data error: %s" % (now.strftime("%H:%M:%S"), e))
             events, finished = [], False
+        unsent = False
         for key, text in events:
             if key not in state["sent"]:
-                send_sms(text, a.dry_run)
+                # A refused or failed send must not end the day: leave it unsent
+                # and try again on the next check, keeping the alerts in order.
+                try:
+                    send_sms(text, a.dry_run)
+                except (SystemExit, urllib.error.URLError, OSError) as e:
+                    print("%s send failed, will retry: %s" % (now.strftime("%H:%M:%S"), e))
+                    unsent = True
+                    break
                 state["sent"].append(key)
                 if not a.dry_run:
                     save_state(state)
-        if finished:
+        if finished and not unsent:
             return 0
         if now.time() >= dt.time(16, 20):
             print("Past 16:20 ET without data for the close: stopping.")
