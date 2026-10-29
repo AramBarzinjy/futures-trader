@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. A calm, trustworthy B2B palette: ink neutrals with a single
+ * teal accent. Status colours are reserved for meaning (overdue, failed, done).
+ */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-ink-950: #0b1220;
+  --color-ink-900: #111a2e;
+  --color-ink-800: #1e293b;
+  --color-ink-700: #334155;
+  --color-ink-600: #475569;
+  --color-ink-500: #64748b;
+  --color-ink-400: #94a3b8;
+  --color-ink-300: #cbd5e1;
+  --color-ink-200: #e2e8f0;
+  --color-ink-100: #f1f5f9;
+  --color-ink-50: #f8fafc;
+  --color-brand-700: #0f766e;
+  --color-brand-600: #0d9488;
+  --color-brand-500: #14b8a6;
+  --color-brand-100: #ccfbf1;
+  --color-brand-50: #f0fdfa;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--color-ink-50);
+  color: var(--color-ink-900);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+.prose-legal h2 {
+  font-weight: 600;
+  font-size: 1.125rem;
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+.prose-legal p,
+.prose-legal li {
+  color: var(--color-ink-700);
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+}
+.prose-legal ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}

@@ -234,3 +234,7 @@ export function trialDaysLeft(trialEndsAt: Date | null): number | null {
   if (!trialEndsAt) return null;
   return Math.max(0, Math.ceil(DateTime.fromJSDate(trialEndsAt).diffNow("days").days));
 }
+
+export async function getStatuses(actor: Actor) {
+  return withTenant(actor, (tx) => listStatuses(tx));
+}

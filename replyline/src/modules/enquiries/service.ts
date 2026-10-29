@@ -189,6 +189,7 @@ export async function listEnquiries(actor: Actor, filters: ListFilters) {
         contactEmail: schema.contacts.email,
         contactCompany: schema.contacts.company,
         assignedUserId: schema.enquiries.assignedUserId,
+        overdue: sql<boolean>`(${schema.enquiries.closedAt} is null and ${schema.enquiries.nextFollowUpAt} < now())`,
       })
       .from(schema.enquiries)
       .innerJoin(schema.contacts, eq(schema.contacts.id, schema.enquiries.contactId))

@@ -17,13 +17,13 @@ export async function dashboard(actor: Actor) {
     const e = schema.enquiries;
     const count = async (where: ReturnType<typeof and>) => (await tx.select({ n: sql<number>`count(*)::int` }).from(e).where(where))[0].n;
 
-    const [newThisWeek, awaitingResponse, dueToday, overdue, pendingApproval] = await sequential([
+    const [newThisWeek, awaitingResponse, dueToday, overdue] = await sequential([
       () => count(gte(e.createdAt, weekStart)),
       () => count(and(isNull(e.closedAt), sql`(${e.lastOutboundAt} is null or (${e.lastInboundAt} is not null and ${e.lastInboundAt} > ${e.lastOutboundAt}))`)),
       () => count(and(isNull(e.closedAt), gte(e.nextFollowUpAt, now), lt(e.nextFollowUpAt, endOfToday))),
       () => count(and(isNull(e.closedAt), lt(e.nextFollowUpAt, now))),
-      () => tx.select({ n: sql<number>`count(*)::int` }).from(schema.messages).where(eq(schema.messages.status, "pending_approval")).then((r) => r[0].n),
     ] as const);
+    const [{ n: pendingApproval }] = await tx.select({ n: sql<number>`count(*)::int` }).from(schema.messages).where(eq(schema.messages.status, "pending_approval"));
 
     const upcoming = await tx
       .select({ id: schema.appointments.id, title: schema.appointments.title, startsAt: schema.appointments.startsAt, contactName: schema.contacts.name })
