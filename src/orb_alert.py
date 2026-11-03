@@ -52,7 +52,7 @@ PROXY = "QQQ"
 TICK = 0.25
 USD_PER_POINT = 2.0           # MNQ
 MAX_MICROS = 60               # 6 NQ = 60 MNQ, the firm's cap
-RISK_USD = 200.0              # 10% of the $2,000 trailing drawdown
+RISK_USD = 250.0              # 12.5% of the $2,000 trailing drawdown
 TARGET_R = 2.0
 OPEN, RANGE_END = dt.time(9, 30), dt.time(9, 45)
 LAST_ENTRY, FLAT, CLOSE = dt.time(15, 30), dt.time(15, 55), dt.time(16, 0)
