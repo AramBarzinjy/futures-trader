@@ -95,7 +95,11 @@ class Item:
         return [affinity.translate(p, dx, dy) for p in self.word.pieces]
 
 
-_KG = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * int(GAP_RASTER / RES) + 1,) * 2)
+# Gap kernel is an ellipse: words side by side on a line keep WORD_GAP_X apart so two
+# words never read as one string; above/below they may interlock at GAP_RASTER.
+WORD_GAP_X = 4.3     # mm raster (real >= ~3.9 mm)
+LETTER_SEP = 20.0    # mm: lone letters never sit next to each other (no accidental strings)
+_KG = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * int(WORD_GAP_X / RES) + 1, 2 * int(GAP_RASTER / RES) + 1))
 _KR = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * int(RING / RES) + 1,) * 2)
 
 
@@ -182,15 +186,26 @@ class State:
         self.cnt = np.zeros(self.Bp.shape, np.int16)
         self.recs = []          # [item, py, px, fixed]
         self.uses = {}
+        self.lex = np.zeros(self.Bp.shape, np.int16)   # zones where another lone letter may not go
 
-    def Fwin(self, y0, y1, x0, x1):
+    def Fwin(self, y0, y1, x0, x1, lone=False):
         """Forbidden map (float32) for board-pixel window [y0,y1) x [x0,x1)."""
         a = (self.Bp[PAD + y0:PAD + y1, PAD + x0:PAD + x1] | (self.cnt[PAD + y0:PAD + y1, PAD + x0:PAD + x1] > 0))
+        if lone:
+            a = a | (self.lex[PAD + y0:PAD + y1, PAD + x0:PAD + x1] > 0)
         return a.astype(np.float32)
+
+    def _lex_box(self, it, py, px):
+        e = int(LETTER_SEP / RES)
+        h, w = it.D.shape
+        return (max(0, PAD + py - e), PAD + py + h + e, max(0, PAD + px - e), PAD + px + w + e)
 
     def add(self, it, py, px, fixed=False):
         h, w = it.D.shape
         self.cnt[PAD + py:PAD + py + h, PAD + px:PAD + px + w] += it.D
+        if it.kind in ("letter", "filler"):
+            y0, y1, x0, x1 = self._lex_box(it, py, px)
+            self.lex[y0:y1, x0:x1] += 1
         self.recs.append([it, py, px, fixed])
         self.uses[it.text] = self.uses.get(it.text, 0) + 1
 
@@ -198,6 +213,9 @@ class State:
         it, py, px, _ = rec
         h, w = it.D.shape
         self.cnt[PAD + py:PAD + py + h, PAD + px:PAD + px + w] -= it.D
+        if it.kind in ("letter", "filler"):
+            y0, y1, x0, x1 = self._lex_box(it, py, px)
+            self.lex[y0:y1, x0:x1] -= 1
         self.recs.remove(rec)
         self.uses[it.text] -= 1
 
@@ -216,7 +234,7 @@ class State:
             wy1, wx1 = min(wy1, self.H + PAD - 1), min(wx1, self.W + PAD - 1)
             if wy1 - wy0 < h or wx1 - wx0 < w:
                 continue
-            F = self.Fwin(wy0, wy1, wx0, wx1)
+            F = self.Fwin(wy0, wy1, wx0, wx1, lone=it.kind in ("letter", "filler"))
             if coarse:
                 Fc = _pool2(F)
                 if Fc.shape[0] < it.Mc.shape[0] or Fc.shape[1] < it.Mc.shape[1]:
@@ -253,7 +271,7 @@ class State:
 
     def _refine(self, it, py, px, r=3):
         h, w = it.M.shape
-        F = self.Fwin(py - r, py + h + r, px - r, px + w + r)
+        F = self.Fwin(py - r, py + h + r, px - r, px + w + r, lone=it.kind in ("letter", "filler"))
         R = cv2.matchTemplate(F, it.Mf, cv2.TM_CCORR)
         ok = R < 0.5
         if not ok.any():
@@ -274,7 +292,7 @@ class Packer2:
         self.letters = list(groups["letter"].keys())
         self.amax = max(v[0].area for v in groups["word"].values())
         self.size_w, self.letter_pen = size_w, letter_pen
-        self.max_letters = 22
+        self.max_letters = 16
 
     def _bonus(self, it):
         b = self.size_w * np.sqrt(it.area / self.amax) - 0.02 * it.npieces

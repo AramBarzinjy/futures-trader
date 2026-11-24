@@ -25,7 +25,7 @@ WORDS = [
 ]
 
 LETTERS = ["ا", "ب", "ت", "ج", "ح", "د", "ر", "س", "ص", "ط", "ع", "ف", "ق",
-           "ك", "ل", "م", "ن", "ه", "و", "ي", "ء"]
+           "ك", "ل", "م", "ن", "ه", "و", "ي"]   # no lone hamza: next to the verse it reads as part of it
 
 # short, compact words: real words that fill small pockets
 EXTRA = ["لي", "له", "به", "هي", "ثم", "بل", "هل", "كم", "لم", "إذ", "فم", "أب", "أم", "أخ",
