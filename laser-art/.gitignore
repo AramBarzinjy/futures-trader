@@ -1,0 +1,3 @@
+laser-art/data/*.pkl
+!laser-art/data/verse.pkl
+__pycache__/
