@@ -187,10 +187,16 @@ class State:
         self.recs = []          # [item, py, px, fixed]
         self.uses = {}
         self.lex = np.zeros(self.Bp.shape, np.int16)   # zones where another lone letter may not go
+        # straight board edges: still forbidden, but they don't "attract" words (that made rows)
+        yy = np.arange(self.Bp.shape[0])[:, None] - PAD
+        self.edge = ((yy * RES < 6.0) | (yy * RES > BOARD_H - 6.0)) & self.Bp
 
-    def Fwin(self, y0, y1, x0, x1, lone=False):
+    def Fwin(self, y0, y1, x0, x1, lone=False, contact=False):
         """Forbidden map (float32) for board-pixel window [y0,y1) x [x0,x1)."""
-        a = (self.Bp[PAD + y0:PAD + y1, PAD + x0:PAD + x1] | (self.cnt[PAD + y0:PAD + y1, PAD + x0:PAD + x1] > 0))
+        b = self.Bp[PAD + y0:PAD + y1, PAD + x0:PAD + x1]
+        if contact:
+            b = b & ~self.edge[PAD + y0:PAD + y1, PAD + x0:PAD + x1]
+        a = (b | (self.cnt[PAD + y0:PAD + y1, PAD + x0:PAD + x1] > 0))
         if lone:
             a = a | (self.lex[PAD + y0:PAD + y1, PAD + x0:PAD + x1] > 0)
         return a.astype(np.float32)
@@ -235,15 +241,17 @@ class State:
             if wy1 - wy0 < h or wx1 - wx0 < w:
                 continue
             F = self.Fwin(wy0, wy1, wx0, wx1, lone=it.kind in ("letter", "filler"))
+            Fk = self.Fwin(wy0, wy1, wx0, wx1, contact=True)
             if coarse:
                 Fc = _pool2(F)
+                Fkc = _pool2(Fk)
                 if Fc.shape[0] < it.Mc.shape[0] or Fc.shape[1] < it.Mc.shape[1]:
                     continue
                 R = cv2.matchTemplate(Fc, it.Mc, cv2.TM_CCORR)
                 ok = R < 0.5
                 if not ok.any():
                     continue
-                K = cv2.matchTemplate(Fc, it.Rc, cv2.TM_CCORR) / it.rc_n
+                K = cv2.matchTemplate(Fkc, it.Rc, cv2.TM_CCORR) / it.rc_n
                 s = np.where(ok, K + self.rng.random(K.shape) * noise, -1e9)
                 n = min(top, s.size)
                 flat = np.argpartition(-s.ravel(), n - 1)[:n]
@@ -260,7 +268,7 @@ class State:
                 ok = R < 0.5
                 if not ok.any():
                     continue
-                K = cv2.matchTemplate(F, it.Rf, cv2.TM_CCORR) / it.ring_n
+                K = cv2.matchTemplate(Fk, it.Rf, cv2.TM_CCORR) / it.ring_n
                 s = np.where(ok, K + self.rng.random(K.shape) * noise, -1e9)
                 i = int(np.argmax(s))
                 iy, ix = divmod(i, s.shape[1])
@@ -276,7 +284,8 @@ class State:
         ok = R < 0.5
         if not ok.any():
             return None
-        K = cv2.matchTemplate(F, it.Rf, cv2.TM_CCORR) / it.ring_n
+        Fk = self.Fwin(py - r, py + h + r, px - r, px + w + r, contact=True)
+        K = cv2.matchTemplate(Fk, it.Rf, cv2.TM_CCORR) / it.ring_n
         s = np.where(ok, K, -1e9)
         i = int(np.argmax(s))
         iy, ix = divmod(i, s.shape[1])
@@ -423,7 +432,7 @@ def _overlap(a, pa, b, pb):
     return bool((a.M[y0 - ay:y1 - ay, x0 - ax:x1 - ax] & b.D[y0 - by:y1 - by, x0 - bx:x1 - bx]).any())
 
 
-def place_names(pk, avoid_geom, trials=600):
+def place_names(pk, avoid_geom, trials=600, line_gap=55.0, col_gap=30.0, min_gap=20.0):
     """Five Names, clear of the verse, as far apart (edge to edge) as the board allows."""
     st = pk.st
     names = [v[0] for v in pk.g["name"].values()]
@@ -463,8 +472,22 @@ def place_names(pk, avoid_geom, trials=600):
             ys, xs, a0, a1, b0, b1 = c
             g = gaps(c, placed) if placed else np.full(len(ys), 200.0)
             edge = np.minimum((ys + a0) * RES, BOARD_H - (ys + a1) * RES)
-            sc = np.minimum(g, 200.0) - np.where(edge < 8.0, 40.0, 0.0) + rng.random(len(ys)) * 15
+            # hard rules: two Names sharing a line sit >= 55 mm apart; sharing a
+            # column, >= 30 mm apart; never closer than 20 mm in any direction
+            bad = np.zeros(len(ys), bool)
+            for (_, _, (Y0, Y1, X0, X1)) in placed:
+                yov = np.minimum(ys + a1, Y1) - np.maximum(ys + a0, Y0)
+                xov = np.minimum(xs + b1, X1) - np.maximum(xs + b0, X0)
+                xgap = np.maximum(0, np.maximum(X0 - (xs + b1), (xs + b0) - X1)) * RES
+                ygap = np.maximum(0, np.maximum(Y0 - (ys + a1), (ys + a0) - Y1)) * RES
+                bad |= (yov > 0.2 * (a1 - a0)) & (xgap < line_gap)
+                bad |= (xov > 0.2 * (b1 - b0)) & (ygap < col_gap)
+            bad |= g < min_gap
+            sc = np.minimum(g, 200.0) - np.where(edge < 6.0, 30.0, 0.0) + rng.random(len(ys)) * 15
+            sc[bad] = -1e9
             for i in np.argsort(-sc)[:200]:
+                if sc[i] < -1e8:
+                    break
                 p = (ys[i], xs[i])
                 if all(not _overlap(it, p, q[0], q[1]) for q in placed):
                     placed.append((it, p, (ys[i] + a0, ys[i] + a1, xs[i] + b0, xs[i] + b1)))
@@ -538,10 +561,11 @@ if __name__ == "__main__":
     ap.add_argument("--out", default="data/background.pkl")
     ap.add_argument("--lns", type=int, default=600)
     ap.add_argument("--clip", type=float, nargs=4, default=None, help="x0 y0 x1 y1 mm sub-area (testing)")
+    ap.add_argument("--mixed", action="store_true", help="also allow smaller words (75-85 %%) as gap fillers")
     a = ap.parse_args()
     t = time.time()
     log = []
-    groups = build_items(log=log)
+    groups = build_items(log=log, scales=(0.75, 0.85, 0.94, 1.0, 1.06) if a.mixed else (0.94, 1.0, 1.06))
     print("items", {k: len(v) for k, v in groups.items()}, log, "%.0fs" % (time.time() - t), flush=True)
     vp, vk, vl = pickle.load(open(a.verse, "rb"))
     verse = unary_union(vp)
@@ -551,7 +575,13 @@ if __name__ == "__main__":
         region = region.intersection(box(*a.clip))
     pk = Packer2(region, groups, seed=a.seed, letter_pen=0.5)
     if not a.clip:
-        d = place_names(pk, verse.buffer(8.0))
+        for lg, cg, mg in ((55, 30, 20), (45, 25, 15), (38, 20, 12), (30, 15, 8), (0, 0, 0)):
+            try:
+                d = place_names(pk, verse.buffer(4.0), line_gap=lg, col_gap=cg, min_gap=mg)
+                print(f"  name rules: same line >= {lg} mm, same column >= {cg} mm", flush=True)
+                break
+            except RuntimeError:
+                continue
         print("  names placed, closest pair %.0f mm" % d, flush=True)
     support_verse(pk, vp if not a.clip else [p for p in vp if p.within(region)])
     print("  supports placed", len(pk.st.recs), flush=True)

@@ -1,4 +1,7 @@
 laser-art/data/*.pkl
 !laser-art/data/verse.pkl
 !laser-art/data/background_closeup.pkl
+!laser-art/data/background_final.pkl
+laser-art/output/*.zip
+laser-art/output/*.pkl
 __pycache__/

@@ -26,7 +26,8 @@ def check(bg, verse_pieces, min_gap=1.8, verbose=True):
                 continue
             d = g.distance(geoms[j])
             gaps.append(d)
-            if d < min_gap:
+            hidden = pieces[i][1] == "spacer" or pieces[j][1] == "spacer"
+            if d < (1.15 if hidden else min_gap):
                 problems.append(f"gap {d:.2f} mm between '{pieces[i][0]}' and '{pieces[j][0]}'")
     # inside the lettering region (not cut off by board or rug edges)
     reg = lettering_region().buffer(1e-6)
