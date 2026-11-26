@@ -140,15 +140,15 @@ def write_svg(fn, cut, last, score_rings, size=SHEET, title=""):
                 f'width="{size}mm" height="{size}mm" viewBox="0 0 {size} {size}">\n<title>{title}</title>\n')
         f.write(f'<g id="score_red" fill="none" stroke="{RED}" stroke-width="0.1">\n')
         for r in score_rings:
-            f.write(f'<path d="{d(r)}"/>\n')
+            f.write(f'<path d="{d(r)}" fill="none" stroke="{RED}" stroke-width="0.1"/>\n')
         f.write('</g>\n')
         f.write(f'<g id="cut_black" fill="none" stroke="{BLACK}" stroke-width="0.1">\n')
         for r in _holes_then_outers(cut):
-            f.write(f'<path d="{d(r)}"/>\n')
+            f.write(f'<path d="{d(r)}" fill="none" stroke="{BLACK}" stroke-width="0.1"/>\n')
         f.write('</g>\n')
         f.write(f'<g id="cut_last_blue" fill="none" stroke="{BLUE}" stroke-width="0.1">\n')
         for r in _rings_of(last):
-            f.write(f'<path d="{d(r)}"/>\n')
+            f.write(f'<path d="{d(r)}" fill="none" stroke="{BLUE}" stroke-width="0.1"/>\n')
         f.write('</g>\n</svg>\n')
 
 
